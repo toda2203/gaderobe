@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -7,8 +8,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with cached npm directory
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --prefer-offline
 
 # Copy source code
 COPY src ./src
@@ -30,8 +31,8 @@ RUN apk add --no-cache sqlite
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --omit=dev
+# Install production dependencies only (cached npm directory)
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit --prefer-offline
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
