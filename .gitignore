@@ -1,0 +1,68 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+/data/*.db
+!/data/.gitkeep
+
+# Uploads
+/uploads/*
+!/uploads/.gitkeep
+
+# Backups
+/backups/*
+!/backups/.gitkeep
+
+# Logs
+/logs/*
+!/logs/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+/temp/*
+!/temp/.gitkeep
+
+# Coverage
+coverage/
+.nyc_output/
+
+# SSL Certificates (SECURITY: Never commit!)
+ssl/
+*.pfx
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+
+# Environment files (SECURITY: Never commit!)
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env
+
+# Sensitive data
+*.secret
+*.password

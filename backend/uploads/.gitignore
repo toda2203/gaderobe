@@ -1,0 +1,7 @@
+# Uploaded files and generated protocols
+*
+!.gitignore
+
+# Allow protocols directory structure but ignore contents
+protocols/*
+!protocols/.gitkeep

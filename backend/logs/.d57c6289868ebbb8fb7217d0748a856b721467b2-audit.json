@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "C:\\www\\wwwroot\\productiv\\bekleidung\\backend\\logs\\.d57c6289868ebbb8fb7217d0748a856b721467b2-audit.json",
+    "files": [
+        {
+            "date": 1765872082319,
+            "name": "C:\\www\\wwwroot\\productiv\\bekleidung\\backend\\logs\\error-2025-12-16.log",
+            "hash": "6cd9d9b52de9d16b226a1891ea11bef46d592daebf153b33b669a052e5ba8efc"
+        }
+    ],
+    "hashType": "sha256"
+}

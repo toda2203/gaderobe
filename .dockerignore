@@ -1,0 +1,84 @@
+# Ignore node_modules
+**/node_modules
+node_modules/
+
+# Ignore build artifacts
+**/dist
+**/build
+dist/
+build/
+
+# Ignore environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Ignore logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore data and uploads
+data/
+uploads/
+backups/
+
+# Ignore SSL certificates
+ssl/
+*.pfx
+*.pem
+*.key
+*.crt
+*.csr
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore temporary files
+tmp/
+temp/
+*.tmp
+
+# Ignore test coverage
+coverage/
+.nyc_output/
+
+# Ignore prisma generated files (will be generated in container)
+**/prisma/generated
+
+# Ignore development files
+*.md
+!README.md
+!INSTALLATION.md
+docs/
+.editorconfig
+.prettierrc
+.eslintrc*
+tsconfig.tsbuildinfo
+
+# Ignore deployment scripts (not needed in container)
+deployment/
+scripts/backup.sh
+scripts/restore.sh
+
+# Ignore docker files
+docker-compose.yml
+docker-compose.dev.yml
+Dockerfile
+.dockerignore

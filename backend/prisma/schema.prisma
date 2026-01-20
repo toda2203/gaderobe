@@ -1,0 +1,273 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// Employee (Mitarbeiter)
+// ========================================
+model Employee {
+  id              String   @id @default(cuid())
+  entraId         String   @unique
+  email           String   @unique
+  firstName       String
+  lastName        String
+  department      String?
+  status          String   @default("ACTIVE") // EmployeeStatus: ACTIVE, INACTIVE, LEFT
+  role            String   @default("READ_ONLY") // UserRole: ADMIN, WAREHOUSE, HR, READ_ONLY
+  isHidden        Boolean  @default(false)
+  lastSyncAt      DateTime @updatedAt
+
+  // Relations
+  issuedTransactions     Transaction[] @relation("IssuedBy")
+  returnedTransactions   Transaction[] @relation("ReturnedBy")
+  transactions           Transaction[] @relation("EmployeeTransactions")
+  personalizedClothing   ClothingItem[] @relation("PersonalizedFor")
+  currentClothing        ClothingItem[] @relation("CurrentEmployee")
+  auditLogs              AuditLog[]
+  confirmations          Confirmation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entraId])
+  @@index([email])
+  @@index([department])
+  @@index([status])
+  @@index([isHidden])
+  @@map("employees")
+}
+
+// ========================================
+// ClothingType (Kleidungstyp)
+// ========================================
+model ClothingType {
+  id                      String   @id @default(cuid())
+  name                    String   @unique
+  description             String?
+  category                String
+  availableSizes          String   // JSON-Array als String
+  expectedLifespanMonths  Int?
+  requiresDepartment      String?  // JSON-Array als String
+  imageUrl                String?
+  isActive                Boolean  @default(true)
+
+  // Relations
+  items                   ClothingItem[]
+  departmentAllocations   DepartmentAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@map("clothing_types")
+}
+
+// ========================================
+// ClothingItem (Kleidungsstück)
+// ========================================
+model ClothingItem {
+  id                String            @id @default(cuid())
+  internalId        String            @unique
+  typeId            String
+  type              ClothingType      @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  size              String
+  category          String   @default("POOL") // ClothingCategory: PERSONALIZED, POOL
+  condition         String   @default("NEW") // ClothingCondition: NEW, GOOD, WORN, RETIRED
+  imageUrl          String?
+  qrCode            String            @unique
+  isPersonalized    Boolean           @default(false)
+  personalizedForId String?
+  personalizedFor   Employee?         @relation("PersonalizedFor", fields: [personalizedForId], references: [id], onDelete: SetNull)
+  currentEmployeeId String?
+  currentEmployee   Employee?         @relation("CurrentEmployee", fields: [currentEmployeeId], references: [id], onDelete: SetNull)
+  status            String            @default("AVAILABLE") // ClothingStatus: AVAILABLE, PENDING, ISSUED, IN_USE, RETURNED, RETIRED, LOST
+  purchaseDate      DateTime?
+  purchasePrice     Float?
+  retirementDate    DateTime?
+  retirementReason  String?
+
+  // Relations
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([internalId])
+  @@index([qrCode])
+  @@index([typeId])
+  @@index([category])
+  @@index([status])
+  @@index([currentEmployeeId])
+  @@map("clothing_items")
+}
+
+// ========================================
+// Transaction (Übergabe/Rücknahme)
+// ========================================
+model Transaction {
+  id                String            @id @default(cuid())
+  employeeId        String
+  employee          Employee          @relation("EmployeeTransactions", fields: [employeeId], references: [id], onDelete: Restrict)
+  clothingItemId    String
+  clothingItem      ClothingItem      @relation(fields: [clothingItemId], references: [id], onDelete: Restrict)
+  type              String  // TransactionType: ISSUE, RETURN, TRANSFER
+  issuedAt          DateTime          @default(now())
+  issuedById        String
+  issuedBy          Employee          @relation("IssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
+  conditionOnIssue  String
+  returnedAt        DateTime?
+  returnedById      String?
+  returnedBy        Employee?         @relation("ReturnedBy", fields: [returnedById], references: [id], onDelete: SetNull)
+  conditionOnReturn String?
+  signatureUrl      String?
+  notes             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([clothingItemId])
+  @@index([issuedAt])
+  @@index([returnedAt])
+  @@index([type])
+  @@map("transactions")
+}
+
+// ========================================
+// AuditLog (Änderungsprotokoll)
+// ========================================
+model AuditLog {
+  id            String      @id @default(cuid())
+  entityType    String
+  entityId      String
+  action        String  // AuditAction: CREATE, UPDATE, DELETE, ISSUE, RETURN, RETIRE
+  performedById String
+  performedBy   Employee    @relation(fields: [performedById], references: [id], onDelete: Restrict)
+  changes       String?     // JSON als String
+  ipAddress     String?
+  userAgent     String?
+  timestamp     DateTime    @default(now())
+
+  @@index([entityType, entityId])
+  @@index([performedById])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ========================================
+// DepartmentAllocation (Abteilungszuordnung)
+// ========================================
+model DepartmentAllocation {
+  id                    String       @id @default(cuid())
+  department            String
+  clothingTypeId        String
+  clothingType          ClothingType @relation(fields: [clothingTypeId], references: [id], onDelete: Cascade)
+  quantity              Int
+  mandatory             Boolean      @default(false)
+  renewalIntervalMonths Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([department, clothingTypeId])
+  @@index([department])
+  @@map("department_allocations")
+}
+
+// ========================================
+// Confirmation (Email-Bestätigungen)
+// ========================================
+model Confirmation {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  transactionId  String?
+  protocolId     String?  // Für bulk protocols
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  // Protocol/Transaction details for display
+  protocolType   String   // SINGLE, BULK_ISSUE, BULK_RETURN
+  itemsJson      String   // JSON string of items for display
+  
+  // Confirmation status
+  confirmed      Boolean  @default(false)
+  confirmedAt    DateTime?
+  confirmedBy    String?  // Microsoft User ID who confirmed
+  ipAddress      String?
+  userAgent      String?
+  
+  // Protocol file storage
+  protocolFilePath String? // Path to stored PDF protocol
+  
+  // Email tracking
+  emailSent      Boolean  @default(false)
+  emailSentAt    DateTime?
+  emailError     String?
+  
+  // Expiry
+  expiresAt      DateTime
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([token])
+  @@index([employeeId])
+  @@index([confirmed])
+  @@index([expiresAt])
+  @@map("confirmations")
+}
+
+// ========================================
+// MasterDataItem (Größen, Kategorien, Abteilungen mit Reihenfolge)
+// ========================================
+model MasterDataItem {
+  id    String   @id @default(cuid())
+  type  String   // SIZE, CATEGORY, DEPARTMENT
+  value String   // Größe, Kategorie oder Abteilung
+  order Int      @default(0) // Sortierreihenfolge
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, value])
+  @@index([type, order])
+  @@map("master_data_items")
+}
+
+// ========================================
+// BackupConfiguration (Automatische Backup-Konfiguration)
+// ========================================
+model BackupConfiguration {
+  id                String   @id @default(cuid())
+  enabled           Boolean  @default(false)
+  schedule          String   // Cron expression (z.B. "0 2 * * *" für täglich 2 Uhr)
+  frequency         String   // DAILY, WEEKLY, MONTHLY
+  hour              Int      // Stunde (0-23)
+  minute            Int      @default(0) // Minute (0-59)
+  dayOfWeek         Int?     // 0-6 (Sonntag-Samstag) für WEEKLY
+  dayOfMonth        Int?     // 1-31 für MONTHLY
+  retentionDays     Int      @default(30)
+  includeImages     Boolean  @default(true)
+  includeProtocols  Boolean  @default(true)
+  notifyOnSuccess   Boolean  @default(true)
+  notifyOnError     Boolean  @default(true)
+  notificationEmail String?
+  lastRunAt         DateTime?
+  lastRunSuccess    Boolean?
+  lastRunError      String?
+  nextRunAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("backup_configurations")
+}
