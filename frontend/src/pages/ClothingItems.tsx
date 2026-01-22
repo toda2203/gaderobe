@@ -250,11 +250,11 @@ const ClothingItemsPage: React.FC = () => {
           setAuditLogs([]);
         }
       } catch (auditError) {
-        console.warn('Audit logs not available:', auditError?.response?.status, auditError?.response?.data);
+        console.warn('Audit logs not available:', (auditError as any)?.response?.status, (auditError as any)?.response?.data);
         setAuditLogs([]); // Set empty array if audit logs fail
       }
       
-      if ((item.status === 'ISSUED' || item.status === 'PENDING') && !item.currentEmployee) {
+      if ((item.status === 'ISSUED') && !item.currentEmployee) {
         console.log('Detected inconsistency, refreshing item data...');
         try {
           const itemResponse = await api.get(`/clothing/items`);
@@ -579,7 +579,7 @@ const ClothingItemsPage: React.FC = () => {
       width: 80,
       render: (_: any, record: ClothingItem) => {
         // Verwende das eigene Bild oder falle zurück auf das Typ-Bild
-        const imageUrl = record.imageUrl || record.type.imageUrl;
+        const imageUrl = record.imageUrl || (record.type as any)?.imageUrl;
         
         return imageUrl ? (
           <Image
@@ -1398,8 +1398,8 @@ const ClothingItemsPage: React.FC = () => {
                                   </span>
                                 </strong>
                               ) : (
-                                <span style={{ color: selectedItem.status === 'ISSUED' || selectedItem.status === 'PENDING' ? '#ff4d4f' : '#999' }}>
-                                  {selectedItem.status === 'ISSUED' || selectedItem.status === 'PENDING' 
+                                <span style={{ color: selectedItem.status === 'ISSUED' ? '#ff4d4f' : '#999' }}>
+                                  {selectedItem.status === 'ISSUED'
                                     ? '⚠️ INKONSISTENZ: Ausgegeben aber kein Besitzer zugeordnet' 
                                     : 'Nicht zugeordnet'}
                                 </span>
