@@ -294,7 +294,7 @@ router.post('/:token/confirm', authenticate, async (req: AuthenticatedRequest, r
             confirmedAt: updatedConfirmation.confirmedAt,
             ipAddress: updatedConfirmation.ipAddress,
           }),
-          performedBy: user.entraId,
+          performedById: user.entraId,
           timestamp: new Date(),
           ipAddress: req.ip || req.socket?.remoteAddress || 'unknown',
           userAgent: req.get('User-Agent'),
@@ -405,7 +405,7 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res) => {
 
     // Check if user is admin
     const employee = await prisma.employee.findUnique({
-      where: { entraId: user.sub },
+      where: { entraId: user.entraId },
       select: { role: true },
     });
 

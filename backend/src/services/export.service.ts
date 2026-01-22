@@ -464,62 +464,6 @@ export class ExportService {
     }
     return `"${stringValue}"`;
   }
-
-  /**
-   * Recursively extract files from ZIP to directory
-   */
-  private async extractFilesRecursively(zipFolder: JSZip, targetDir: string): Promise<void> {
-    for (const [filename, file] of Object.entries(zipFolder.files)) {
-      if (file.dir) {
-        // Create subdirectory
-        const subDir = path.join(targetDir, filename.replace(/\/$/, ''));
-        if (!fs.existsSync(subDir)) {
-          fs.mkdirSync(subDir, { recursive: true });
-        }
-      } else {
-        // Extract file
-        const targetPath = path.join(targetDir, filename);
-        const targetSubDir = path.dirname(targetPath);
-        if (!fs.existsSync(targetSubDir)) {
-          fs.mkdirSync(targetSubDir, { recursive: true });
-        }
-        const content = await file.async('nodebuffer');
-        fs.writeFileSync(targetPath, content);
-      }
-    }
-  }
-  private parseCSVLine(line: string): string[] {
-    const values: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-
-      if (char === '"') {
-        if (inQuotes && nextChar === '"') {
-          // Escaped quote
-          current += '"';
-          i++; // Skip next quote
-        } else {
-          // Toggle quote state
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        // End of value
-        values.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-
-    // Add last value
-    values.push(current);
-
-    return values;
-  }
 }
 
 export const exportService = new ExportService();

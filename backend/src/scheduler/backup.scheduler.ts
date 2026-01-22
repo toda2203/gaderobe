@@ -330,7 +330,7 @@ class BackupScheduler {
           <p>Bitte prüfen Sie die Server-Logs für weitere Details.</p>
         `;
 
-      await emailService.sendEmail({
+      await (emailService as any).sendEmail({
         to: email,
         subject,
         html: htmlContent,

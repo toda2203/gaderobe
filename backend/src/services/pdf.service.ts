@@ -20,7 +20,7 @@ class PDFService {
   /**
    * Add company logo to PDF if available
    */
-  private addLogoToPDF(doc: PDFDocument, x: number, y: number, maxWidth: number = 120, maxHeight: number = 60) {
+  private addLogoToPDF(doc: any, x: number, y: number, maxWidth: number = 120, maxHeight: number = 60) {
     try {
       const uploadsDir = path.join(process.cwd(), 'uploads');
       const clothingImagesDir = path.join(uploadsDir, 'clothing-images');

@@ -21,48 +21,62 @@ const startServer = async () => {
     await backupScheduler.initialize();
     logger.info('Backup scheduler initialized');
 
-    // Start Server with HTTPS
-    const certPath = path.join(process.cwd(), 'cert.pfx');
-    if (!fs.existsSync(certPath)) {
-      logger.error('Certificate not found at ' + certPath);
-      process.exit(1);
-    }
+    // Start Server with HTTPS in production, HTTP in development
+    if (config.env === 'production') {
+      const certPath = path.join(process.cwd(), 'cert.pfx');
+      if (!fs.existsSync(certPath)) {
+        logger.error('Certificate not found at ' + certPath);
+        process.exit(1);
+      }
 
-    const pfx = fs.readFileSync(certPath);
-    const httpsOptions = {
-      pfx,
-      passphrase: 'password123',
-    };
+      const pfx = fs.readFileSync(certPath);
+      const httpsOptions = {
+        pfx,
+        passphrase: 'password123',
+      };
 
-    const server = https.createServer(httpsOptions, app).listen(config.port, config.host, () => {
-      logger.info(`🚀 Server running on https://${config.host}:${config.port}`);
-      logger.info(`📝 Environment: ${config.env}`);
-      logger.info(`🔒 CORS enabled for: ${config.corsOrigin}`);
-      logger.info(`🔐 HTTPS enabled with self-signed certificate`);
-    });
-
-    // Graceful Shutdown
-    const gracefulShutdown = async (signal: string) => {
-      logger.info(`${signal} received. Starting graceful shutdown...`);
-
-      server.close(() => {
-        logger.info('HTTP server closed');
-        process.exit(0);
+      const server = https.createServer(httpsOptions, app).listen(config.port, config.host, () => {
+        logger.info(`🚀 Server running on https://${config.host}:${config.port}`);
+        logger.info(`📝 Environment: ${config.env}`);
+        logger.info(`🔒 CORS enabled for: ${config.corsOrigin}`);
+        logger.info(`🔐 HTTPS enabled with self-signed certificate`);
       });
 
-      // Force close after 10 seconds
-      setTimeout(() => {
-        logger.error('Forcing shutdown after timeout');
-        process.exit(1);
-      }, 10000);
-    };
+      setupGracefulShutdown(server);
+    } else {
+      const server = app.listen(config.port, config.host, () => {
+        logger.info(`🚀 Server running on http://${config.host}:${config.port}`);
+        logger.info(`📝 Environment: ${config.env}`);
+        logger.info(`🔒 CORS enabled for: ${config.corsOrigin}`);
+      });
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+      setupGracefulShutdown(server);
+    }
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
   }
+};
+
+const setupGracefulShutdown = (server: any) => {
+  // Graceful Shutdown
+  const gracefulShutdown = async (signal: string) => {
+    logger.info(`${signal} received. Starting graceful shutdown...`);
+
+    server.close(() => {
+      logger.info('HTTP server closed');
+      process.exit(0);
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+      logger.error('Forcing shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 };
 
 startServer();
