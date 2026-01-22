@@ -31,8 +31,11 @@ RUN apk add --no-cache sqlite
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only (cached npm directory)
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit --prefer-offline
+# Install runtime dependencies (including @microsoft/microsoft-graph-client which moved from devDependencies)
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --prefer-offline
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
