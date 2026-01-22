@@ -423,5 +423,19 @@ main() {
     show_completion
 }
 
-# Run main function
-main "$@"
+
+        # Enable BuildKit for faster builds
+        export DOCKER_BUILDKIT=1
+        export COMPOSE_DOCKER_CLI_BUILD=1
+
+        # Build containers (pull latest base images)
+        docker compose -f docker-compose.prod.yml build --pull
+    
+        # Start containers
+        docker compose -f docker-compose.prod.yml up -d
+
+        # Run migrations inside backend container (SQLite volume)
+        log_info "Running database migrations..."
+        docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || true
+    
+        log_success "Application deployed successfully"
