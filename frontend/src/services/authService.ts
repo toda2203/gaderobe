@@ -1,5 +1,5 @@
 import apiClient from './api';
-import { ApiResponse } from '@types/index';
+import type { ApiResponse } from '@types/index';
 
 export interface LoginResponse {
   token: string;
