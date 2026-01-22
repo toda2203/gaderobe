@@ -357,12 +357,20 @@ deploy_application() {
     log_info "Building and starting application..."
     
     cd "$PROJECT_ROOT"
-    
-    # Build containers
-    docker compose -f docker-compose.prod.yml build
+
+    # Enable BuildKit for faster npm installs
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+
+    # Build containers (pull base images)
+    docker compose -f docker-compose.prod.yml build --pull
     
     # Start containers
     docker compose -f docker-compose.prod.yml up -d
+
+    # Run migrations inside backend container (SQLite file is volume-mounted)
+    log_info "Running database migrations..."
+    docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || true
     
     log_success "Application deployed successfully"
 }
