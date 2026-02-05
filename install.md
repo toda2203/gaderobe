@@ -151,3 +151,13 @@ echo "✅ Alles gelöscht - Stand 0!"
 Productiv vs Development in der env Datei anpassen und anschlißend:
 
 cd /opt/bekleidung && docker compose -f docker-compose.portainer.yml down backend && sleep 2 && docker compose -f docker-compose.portainer.yml up -d backend && sleep 5 && docker logs bekleidung-backend-prod 2>&1 | grep "EMAIL SERVICE"
+
+
+
+
+Github:
+
+cd /opt/bekleidung
+git add .
+git commit -m "Feature: Neue Filteroptionen im Dashboard hinzugefügt"
+git push origin main

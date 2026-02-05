@@ -6,6 +6,7 @@ import { authenticate, authorize, AuthenticatedRequest } from '../middleware/aut
 import { asyncHandler } from '../middleware/error.middleware';
 import { emailService, EmailService } from '../services/email.service';
 import { masterDataService } from '../services/master-data.service';
+import { clothingItemService } from '../services/clothing-item.service';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -66,6 +67,7 @@ router.get(
       employeesWithoutClothing,
       pendingConfirmationsCount,
       pendingConfirmations,
+      expiringItems,
     ] = await Promise.all([
       prisma.clothingItem.count(),
       prisma.clothingItem.count({
@@ -151,6 +153,7 @@ router.get(
         orderBy: { createdAt: 'desc' },
         take: 10,
       }),
+      clothingItemService.getExpiringItems(90),
     ]);
 
     // Get recent transactions (last 10)
@@ -278,6 +281,22 @@ router.get(
           typeName: t.clothingItem?.type.name || 'N/A',
           createdAt: t.createdAt,
         })),
+        expiringItems: {
+          total: expiringItems.length,
+          items: expiringItems.map((item: any) => ({
+            id: item.id,
+            internalId: item.internalId,
+            typeName: item.type?.name || 'Unbekannt',
+            employeeName: item.currentEmployee 
+              ? `${item.currentEmployee.firstName} ${item.currentEmployee.lastName}`
+              : 'Nicht zugewiesen',
+            employeeEmail: item.currentEmployee?.email || '',
+            expirationDate: item.expirationDate,
+            daysUntilExpiration: item.daysUntilExpiration,
+            isExpired: item.isExpired,
+            isExpiringSoon: item.isExpiringSoon,
+          })).slice(0, 10), // Limit to top 10
+        },
       },
     });
   })

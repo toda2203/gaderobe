@@ -59,47 +59,54 @@ router.post(
     }
 
     try {
+      const forceOverwrite = req.query.forceOverwrite === 'true';
       const result = await exportService.importFromCSVZip(req.file.buffer);
 
-      // Validate images after successful import
-      const fs = require('fs');
-      const path = require('path');
-      const uploadsDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+      // Validate images after successful import (skip if forceOverwrite is enabled)
+      let imageValidation = undefined;
       
-      // Get all images and check them
-      const clothingTypeImages = await prisma.clothingType.findMany({
-        where: { imageUrl: { not: null } },
-        select: { id: true, imageUrl: true },
-      });
+      if (!forceOverwrite) {
+        const fs = require('fs');
+        const path = require('path');
+        const uploadsDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+        
+        // Get all images and check them
+        const clothingTypeImages = await prisma.clothingType.findMany({
+          where: { imageUrl: { not: null } },
+          select: { id: true, imageUrl: true },
+        });
 
-      const clothingItemImages = await prisma.clothingItem.findMany({
-        where: { imageUrl: { not: null } },
-        select: { id: true, imageUrl: true },
-      });
+        const clothingItemImages = await prisma.clothingItem.findMany({
+          where: { imageUrl: { not: null } },
+          select: { id: true, imageUrl: true },
+        });
 
-      const allImages = [...clothingTypeImages, ...clothingItemImages];
-      const imageValidation = {
-        total: allImages.length,
-        found: 0,
-        missing: 0,
-      };
+        const allImages = [...clothingTypeImages, ...clothingItemImages];
+        imageValidation = {
+          total: allImages.length,
+          found: 0,
+          missing: 0,
+        };
 
-      allImages.forEach(img => {
-        const localPath = img.imageUrl.replace(/^\//, '');
-        const fullPath = path.join(uploadsDir, localPath);
-        if (fs.existsSync(fullPath)) {
-          imageValidation.found++;
-        } else {
-          imageValidation.missing++;
-        }
-      });
+        allImages.forEach(img => {
+          const localPath = img.imageUrl.replace(/^\//, '');
+          const fullPath = path.join(uploadsDir, localPath);
+          if (fs.existsSync(fullPath)) {
+            imageValidation.found++;
+          } else {
+            imageValidation.missing++;
+          }
+        });
+      }
 
       res.json({
         success: result.success,
         data: result.imported,
         errors: result.errors,
         imageValidation,
-        message: `Import abgeschlossen: ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen. Bilder: ${imageValidation.found}/${imageValidation.total} gefunden.`,
+        message: forceOverwrite 
+          ? `Import abgeschlossen (Force Overwrite aktiv): ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen.`
+          : `Import abgeschlossen: ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen. Bilder: ${imageValidation?.found || 0}/${imageValidation?.total || 0} gefunden.`,
       });
     } catch (error: any) {
       console.error('Import error in route:', error);

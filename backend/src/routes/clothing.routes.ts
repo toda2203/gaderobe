@@ -382,4 +382,22 @@ router.delete(
   })
 );
 
+/**
+ * GET /api/clothing/items/expiring/list
+ * Get items that are expiring soon or already expired
+ */
+router.get(
+  '/items/expiring/list',
+  asyncHandler(async (req: any, res) => {
+    const warningDays = parseInt(req.query.warningDays || '90', 10);
+    const expiringItems = await clothingItemService.getExpiringItems(warningDays);
+
+    res.json({
+      success: true,
+      data: expiringItems,
+      count: expiringItems.length,
+    });
+  })
+);
+
 export default router;

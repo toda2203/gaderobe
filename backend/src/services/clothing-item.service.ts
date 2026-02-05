@@ -103,12 +103,46 @@ export class ClothingItemService {
               email: true,
             },
           },
+          transactions: {
+            orderBy: {
+              issuedAt: 'asc', // Älteste zuerst (erste Ausgabe)
+            },
+            take: 1, // Nur die erste Ausgabe
+          },
         },
         orderBy: { createdAt: 'desc' },
       });
 
-      logger.info(`Retrieved ${items.length} clothing items`);
-      return items;
+      // Füge Restlaufzeit-Informationen hinzu
+      const itemsWithLifespan = items.map((item) => {
+        const issueDate = item.transactions[0]?.issuedAt;
+        const expirationDate = this.calculateExpirationDate(
+          issueDate,
+          item.type.expectedLifespanMonths
+        );
+        const daysUntilExpiration = this.getDaysUntilExpiration(expirationDate);
+        
+        // Berechne verbleibende Monate
+        let remainingLifespanMonths = null;
+        if (daysUntilExpiration !== null) {
+          remainingLifespanMonths = Math.max(0, Math.round(daysUntilExpiration / 30));
+        }
+
+        // Entferne transactions aus der Ausgabe (wurde nur für Berechnung benötigt)
+        const { transactions, ...itemData } = item;
+
+        return {
+          ...itemData,
+          expirationDate,
+          daysUntilExpiration,
+          remainingLifespanMonths,
+          isExpired: daysUntilExpiration !== null && daysUntilExpiration < 0,
+          isExpiringSoon: daysUntilExpiration !== null && daysUntilExpiration < 90,
+        };
+      });
+
+      logger.info(`Retrieved ${items.length} clothing items with lifespan info`);
+      return itemsWithLifespan;
     } catch (error) {
       logger.error('Error fetching clothing items:', error);
       throw new Error('Failed to fetch clothing items');
@@ -629,6 +663,104 @@ export class ClothingItemService {
     } catch (error) {
       logger.error('Error creating audit log:', error);
       // Don't throw - audit logging shouldn't block main operations
+    }
+  }
+
+  /**
+   * Calculate expiration date based on purchase date and expected lifespan
+   */
+  private calculateExpirationDate(purchaseDate: Date | null, expectedLifespanMonths: number | null): Date | null {
+    if (!purchaseDate || !expectedLifespanMonths) {
+      return null;
+    }
+    const expirationDate = new Date(purchaseDate);
+    expirationDate.setMonth(expirationDate.getMonth() + expectedLifespanMonths);
+    return expirationDate;
+  }
+
+  /**
+   * Get days remaining until expiration
+   */
+  private getDaysUntilExpiration(expirationDate: Date | null): number | null {
+    if (!expirationDate) return null;
+    const now = new Date();
+    const diffTime = expirationDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  /**
+   * Get items that are expiring soon or already expired
+   */
+  async getExpiringItems(warningDays: number = 90) {
+    try {
+      const allItems = await prisma.clothingItem.findMany({
+        include: {
+          type: true,
+          currentEmployee: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      const expiringItems = allItems
+        .map((item) => {
+          const expirationDate = this.calculateExpirationDate(
+            item.purchaseDate,
+            item.type.expectedLifespanMonths
+          );
+          const daysUntilExpiration = this.getDaysUntilExpiration(expirationDate);
+
+          return {
+            ...item,
+            expirationDate,
+            daysUntilExpiration,
+            isExpired: daysUntilExpiration !== null && daysUntilExpiration < 0,
+            isExpiringSoon: daysUntilExpiration !== null && daysUntilExpiration < warningDays && daysUntilExpiration >= 0,
+          };
+        })
+        .filter((item) => item.isExpired || item.isExpiringSoon)
+        .sort((a, b) => {
+          const daysA = a.daysUntilExpiration ?? Infinity;
+          const daysB = b.daysUntilExpiration ?? Infinity;
+          return daysA - daysB;
+        });
+
+      logger.info(`Found ${expiringItems.length} items expiring within ${warningDays} days`);
+      return expiringItems;
+    } catch (error) {
+      logger.error('Error fetching expiring items:', error);
+      throw new Error('Failed to fetch expiring items');
+    }
+  }
+
+  /**
+   * Get item with expiration info
+   */
+  async getItemWithExpirationInfo(itemId: string) {
+    try {
+      const item = await this.getClothingItemById(itemId);
+      const expirationDate = this.calculateExpirationDate(
+        item.purchaseDate,
+        (item.type as any)?.expectedLifespanMonths
+      );
+      const daysUntilExpiration = this.getDaysUntilExpiration(expirationDate);
+
+      return {
+        ...item,
+        expirationDate,
+        daysUntilExpiration,
+        isExpired: daysUntilExpiration !== null && daysUntilExpiration < 0,
+        isExpiringSoon: daysUntilExpiration !== null && daysUntilExpiration < 90,
+      };
+    } catch (error) {
+      logger.error('Error fetching item with expiration info:', error);
+      throw error;
     }
   }
 }

@@ -282,13 +282,21 @@ const ClothingTypesPage: React.FC = () => {
     try {
       console.log('ClothingType form values:', values); // Debug logging
       
+      // Konvertiere expectedLifespanMonths zu Zahl wenn vorhanden
+      const dataToSave = {
+        ...values,
+        expectedLifespanMonths: values.expectedLifespanMonths ? Number(values.expectedLifespanMonths) : null,
+      };
+      
+      console.log('ClothingType data to save:', dataToSave); // Debug logging
+      
       if (editingId) {
         // Update
-        await api.patch(`/clothing-types/${editingId}`, values);
+        await api.patch(`/clothing-types/${editingId}`, dataToSave);
         message.success('Kleidungstyp aktualisiert');
       } else {
         // Create
-        await api.post('/clothing-types', values);
+        await api.post('/clothing-types', dataToSave);
         message.success('Kleidungstyp erstellt');
       }
 
@@ -333,7 +341,7 @@ const ClothingTypesPage: React.FC = () => {
       description: clothingType.description,
       category: clothingType.category,
       availableSizes: parsedSizes,
-      expectedLifespanMonths: clothingType.expectedLifespanMonths,
+      expectedLifespanMonths: clothingType.expectedLifespanMonths ? Number(clothingType.expectedLifespanMonths) : null,
       requiresDepartment: parsedDepartments,
       imageUrl: clothingType.imageUrl,
     });
@@ -542,6 +550,7 @@ const ClothingTypesPage: React.FC = () => {
           Legen Sie hier die Grundtypen Ihrer Kleidungsstücke an – z. B. „Arbeitshandschuhe", „Sicherheitsweste", „Berufsjacke". 
           Für jeden Typ definieren Sie: Beschreibung, Kategorie (z. B. Oberbekleidung), verfügbare Größen (XS, S, M, L, XL), Lebensdauer und optionales Bild. 
           Diese Vorlagen werden dann genutzt, um einzelne Kleidungsartikel zu erzeugen – z. B. mehrere Arbeitshandschuhe in Größe M oder L.
+          Um die Kleidungsstücke besser wiederzufinden und zu indentifizieren, ist die Hersteller-Artikelnummer im Namen sinnvoll.
         </p>
       </Card>
 

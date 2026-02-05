@@ -440,44 +440,51 @@ router.post(
     }
 
     try {
+      const forceOverwrite = req.query.forceOverwrite === 'true';
       const buffer = fs.readFileSync(filePath);
       const result = await exportService.importFromCSVZip(buffer);
 
-      // Validate images after successful import
-      const clothingTypeImages = await prisma.clothingType.findMany({
-        where: { imageUrl: { not: null } },
-        select: { id: true, imageUrl: true },
-      });
+      // Validate images after successful import (skip if forceOverwrite is enabled)
+      let imageValidation = undefined;
+      
+      if (!forceOverwrite) {
+        const clothingTypeImages = await prisma.clothingType.findMany({
+          where: { imageUrl: { not: null } },
+          select: { id: true, imageUrl: true },
+        });
 
-      const clothingItemImages = await prisma.clothingItem.findMany({
-        where: { imageUrl: { not: null } },
-        select: { id: true, imageUrl: true },
-      });
+        const clothingItemImages = await prisma.clothingItem.findMany({
+          where: { imageUrl: { not: null } },
+          select: { id: true, imageUrl: true },
+        });
 
-      const allImages = [...clothingTypeImages, ...clothingItemImages];
-      const imageValidation = {
-        total: allImages.length,
-        found: 0,
-        missing: 0,
-      };
+        const allImages = [...clothingTypeImages, ...clothingItemImages];
+        imageValidation = {
+          total: allImages.length,
+          found: 0,
+          missing: 0,
+        };
 
-      const uploadsDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-      allImages.forEach(img => {
-        const localPath = img.imageUrl.replace(/^\//, '');
-        const fullPath = path.join(uploadsDir, localPath);
-        if (fs.existsSync(fullPath)) {
-          imageValidation.found++;
-        } else {
-          imageValidation.missing++;
-        }
-      });
+        const uploadsDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+        allImages.forEach(img => {
+          const localPath = img.imageUrl.replace(/^\//, '');
+          const fullPath = path.join(uploadsDir, localPath);
+          if (fs.existsSync(fullPath)) {
+            imageValidation.found++;
+          } else {
+            imageValidation.missing++;
+          }
+        });
+      }
 
       res.json({
         success: result.success,
         data: result.imported,
         errors: result.errors,
         imageValidation,
-        message: `Automatisches Backup wiederhergestellt: ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen.`,
+        message: forceOverwrite
+          ? `Automatisches Backup wiederhergestellt (Force Overwrite aktiv): ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen.`
+          : `Automatisches Backup wiederhergestellt: ${result.imported.employees} Mitarbeiter, ${result.imported.clothingTypes} Typen, ${result.imported.clothingItems} Kleidungsstücke, ${result.imported.transactions} Transaktionen.`,
       });
     } catch (error: any) {
       console.error('Restore backup error:', error);

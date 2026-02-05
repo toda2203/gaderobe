@@ -23,6 +23,8 @@ import {
   Descriptions,
   Tabs,
   Switch,
+  List,
+  Empty,
 } from 'antd';
 import type { UploadFile, UploadProps } from 'antd';
 import {
@@ -33,6 +35,7 @@ import {
   QrcodeOutlined,
   UploadOutlined,
   DownloadOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 import { QRCodeCanvas } from 'qrcode.react';
 import api from '../services/api';
@@ -61,6 +64,7 @@ interface Employee {
   firstName: string;
   lastName: string;
   email: string;
+  status?: string;
 }
 
 interface ClothingItem {
@@ -80,6 +84,11 @@ interface ClothingItem {
   purchasePrice: number | null;
   imageUrl: string | null;
   createdAt: string;
+  expirationDate: string | null;
+  daysUntilExpiration: number | null;
+  remainingLifespanMonths: number | null;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
 }
 
 interface ClothingItemStats {
@@ -120,6 +129,12 @@ const ClothingItemsPage: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   
+  // Issue to employee state
+  const [issueModalVisible, setIssueModalVisible] = useState(false);
+  const [issueForm] = Form.useForm();
+  const [itemToIssue, setItemToIssue] = useState<ClothingItem | null>(null);
+  const [issueLoading, setIssueLoading] = useState(false);
+  
   // Search and filter
   const [searchText, setSearchText] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
@@ -130,6 +145,7 @@ const ClothingItemsPage: React.FC = () => {
     const saved = localStorage.getItem('clothingItems_hideRetired');
     return saved !== null ? JSON.parse(saved) : true; // Default: ausgeblendet
   });
+  const [employeeSearchText, setEmployeeSearchText] = useState<string>('');
   
   const { user } = useAuthStore();
   const canEdit = Boolean(user && user.role !== 'READ_ONLY');
@@ -579,6 +595,35 @@ const ClothingItemsPage: React.FC = () => {
     }
   };
 
+  // Handle issue to employee
+  const handleIssueToEmployee = (item: ClothingItem) => {
+    setItemToIssue(item);
+    issueForm.resetFields();
+    setIssueModalVisible(true);
+  };
+
+  const handleIssueSubmit = async (values: any) => {
+    if (!itemToIssue) return;
+
+    try {
+      setIssueLoading(true);
+      await api.post('/transactions/issue', {
+        clothingItemId: itemToIssue.id,
+        employeeId: values.employeeId,
+        conditionOnIssue: itemToIssue.condition,
+      });
+      message.success('Kleidungsstück erfolgreich übergeben');
+      setIssueModalVisible(false);
+      issueForm.resetFields();
+      setItemToIssue(null);
+      fetchData();
+    } catch (error: any) {
+      message.error(error.response?.data?.error || 'Fehler beim Übergeben des Kleidungsstücks');
+    } finally {
+      setIssueLoading(false);
+    }
+  };
+
   // Handle type change to update available sizes
   const handleTypeChange = (typeId: string) => {
     setSelectedTypeId(typeId);
@@ -678,10 +723,45 @@ const ClothingItemsPage: React.FC = () => {
           : '-',
     },
     {
+      title: 'Restlaufzeit',
+      key: 'remainingLifespan',
+      width: 130,
+      render: (_: any, record: ClothingItem) => {
+        // Nur anzeigen wenn expectedLifespanMonths beim Typ gesetzt ist
+        if (!(record.type as any).expectedLifespanMonths) {
+          return '-';
+        }
+
+        const months = record.remainingLifespanMonths;
+        
+        if (months === null) {
+          return <Tag>Nicht ausgegeben</Tag>;
+        }
+
+        if (months === 0 || record.isExpired) {
+          return <Tag color="red">Abgelaufen</Tag>;
+        }
+
+        // Farbskala: grün > 6 Monate, orange 3-6 Monate, rot < 3 Monate
+        let color = 'green';
+        if (months < 3) {
+          color = 'red';
+        } else if (months < 6) {
+          color = 'orange';
+        }
+
+        return (
+          <Tag color={color}>
+            {months} {months === 1 ? 'Monat' : 'Monate'}
+          </Tag>
+        );
+      },
+    },
+    {
       title: 'Aktion',
       key: 'action',
       fixed: 'right' as const,
-      width: 200,
+      width: 280,
       render: (_: any, record: ClothingItem) => (
         <Space size="small">
           <Button
@@ -691,6 +771,17 @@ const ClothingItemsPage: React.FC = () => {
           />
           {canEdit && (
             <>
+              {record.status !== 'RETIRED' && record.status !== 'LOST' && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<SendOutlined />}
+                  title="Übergeben"
+                  onClick={() => handleIssueToEmployee(record)}
+                >
+                  Übergeben
+                </Button>
+              )}
               <Button
                 type="primary"
                 size="small"
@@ -1946,6 +2037,136 @@ const ClothingItemsPage: React.FC = () => {
               ]}
             />
           </Spin>
+        )}
+      </Modal>
+
+      {/* Issue to Employee Modal */}
+      <Modal
+        title="Kleidungsstück übergeben"
+        open={issueModalVisible}
+        onCancel={() => {
+          setIssueModalVisible(false);
+          issueForm.resetFields();
+          setItemToIssue(null);
+          setEmployeeSearchText('');
+        }}
+        footer={null}
+        width={500}
+      >
+        {itemToIssue && (
+          <Form
+            form={issueForm}
+            layout="vertical"
+            onFinish={handleIssueSubmit}
+          >
+            <Form.Item label="Artikel">
+              <div style={{ padding: '12px', background: '#f5f5f5', borderRadius: '4px' }}>
+                <div><strong>{itemToIssue.internalId}</strong> - {itemToIssue.type.name}</div>
+                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                  Größe: {itemToIssue.size}
+                </div>
+              </div>
+            </Form.Item>
+
+            <Form.Item
+              name="employeeId"
+              label="Mitarbeiter"
+              rules={[{ required: true, message: 'Bitte wählen Sie einen Mitarbeiter' }]}
+            >
+              <div style={{ position: 'relative' }}>
+                <Input
+                  placeholder="Namen eingeben um zu filtern..."
+                  value={employeeSearchText}
+                  onChange={(e) => setEmployeeSearchText(e.target.value)}
+                  allowClear
+                  style={{ marginBottom: '8px' }}
+                />
+                
+                {employeeSearchText || issueForm.getFieldValue('employeeId') === undefined ? (
+                  <Card
+                    size="small"
+                    style={{
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      border: '1px solid #d9d9d9',
+                      position: 'relative',
+                      zIndex: 10,
+                    }}
+                  >
+                    <List
+                      size="small"
+                      dataSource={employees.filter(e => {
+                        if (!e.status || e.status !== 'ACTIVE') return false;
+                        if (!employeeSearchText) return true;
+                        
+                        const searchLower = employeeSearchText.toLowerCase();
+                        const fullName = `${e.firstName} ${e.lastName}`.toLowerCase();
+                        const email = e.email.toLowerCase();
+                        
+                        return fullName.includes(searchLower) || email.includes(searchLower);
+                      })}
+                      renderItem={(employee) => (
+                        <List.Item
+                          style={{ cursor: 'pointer', paddingLeft: 0, paddingRight: 0 }}
+                          onClick={() => {
+                            issueForm.setFieldsValue({ employeeId: employee.id });
+                            setEmployeeSearchText('');
+                          }}
+                        >
+                          <List.Item.Meta
+                            title={`${employee.firstName} ${employee.lastName}`}
+                            description={employee.email}
+                          />
+                        </List.Item>
+                      )}
+                      locale={{
+                        emptyText: <Empty description="Keine Mitarbeiter gefunden" />,
+                      }}
+                    />
+                  </Card>
+                ) : null}
+
+                {issueForm.getFieldValue('employeeId') && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      background: '#e6f7ff',
+                      borderRadius: '4px',
+                      marginTop: '8px',
+                    }}
+                  >
+                    <strong>Ausgewählt:</strong>{' '}
+                    {employees.find((e) => e.id === issueForm.getFieldValue('employeeId'))
+                      ?.firstName}{' '}
+                    {employees.find((e) => e.id === issueForm.getFieldValue('employeeId'))
+                      ?.lastName}
+                  </div>
+                )}
+              </div>
+            </Form.Item>
+
+            <Form.Item>
+              <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button
+                  onClick={() => {
+                    setIssueModalVisible(false);
+                    issueForm.resetFields();
+                    setItemToIssue(null);
+                    setEmployeeSearchText('');
+                  }}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={issueLoading}
+                >
+                  Übergeben
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
         )}
       </Modal>
     </div>

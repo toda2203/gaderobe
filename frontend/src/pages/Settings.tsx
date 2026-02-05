@@ -22,6 +22,7 @@ import {
   Image,
   Switch,
   Collapse,
+  Checkbox,
 } from 'antd';
 import { MasterDataList } from '@components/Settings/MasterDataList';
 import { AutomaticBackupConfig } from '@components/Settings/AutomaticBackupConfig';
@@ -95,6 +96,7 @@ export default function Settings() {
   const [validatingImages, setValidatingImages] = useState(false);
   const [imageValidation, setImageValidation] = useState<any>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [forceOverwrite, setForceOverwrite] = useState(false);
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
   const canEdit = user && user.role !== 'READ_ONLY';
@@ -222,17 +224,13 @@ export default function Settings() {
   const loadEmailMode = async () => {
     try {
       const response = await api.get('/system/email-config');
-      console.log('[DEBUG] Email config response:', response.data);
       const { mode, testAddress: configTestAddress } = response.data.data;
-      console.log('[DEBUG] Parsed values - mode:', mode, 'testAddress:', configTestAddress);
-      alert(`[DEBUG] API returned mode: ${mode}, testAddress: ${configTestAddress}`);
       setEmailMode(mode);
       if (configTestAddress) {
         setTestAddress(configTestAddress);
       }
     } catch (error) {
       console.error('Error loading email mode:', error);
-      alert(`[ERROR] Email config failed: ${error}`);
     }
   };
 
@@ -328,7 +326,8 @@ export default function Settings() {
         (error) => Promise.reject(error)
       );
 
-      const response = await tempAxios.post('/export/import', formData);
+      const queryParam = forceOverwrite ? '?forceOverwrite=true' : '';
+      const response = await tempAxios.post(`/export/import${queryParam}`, formData);
 
       const mapped: ImportResult = {
         success: Boolean(response.data?.success),
@@ -758,6 +757,13 @@ export default function Settings() {
                       mit allen Bildern und Protokollen wiederherzustellen. Nur ZIP-Dateien (.zip) werden unterstützt.
                     </Paragraph>
                     <Space size="middle" direction="vertical" style={{ width: '100%' }}>
+                      <Checkbox 
+                        checked={forceOverwrite} 
+                        onChange={(e) => setForceOverwrite(e.target.checked)}
+                        style={{ marginBottom: 8 }}
+                      >
+                        <Text strong>Force Overwrite:</Text> Bildvalidierung überspringen und alle Bilder überschreiben
+                      </Checkbox>
                       <Upload {...uploadProps}>
                         <Button
                           icon={<UploadOutlined />}

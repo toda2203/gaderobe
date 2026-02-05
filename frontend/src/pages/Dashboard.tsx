@@ -106,6 +106,20 @@ interface DashboardData {
       createdAt: string;
     }>;
   };
+  expiringItems: {
+    total: number;
+    items: Array<{
+      id: string;
+      internalId: string;
+      typeName: string;
+      employeeName: string;
+      employeeEmail: string;
+      expirationDate: string | null;
+      daysUntilExpiration: number | null;
+      isExpired: boolean;
+      isExpiringSoon: boolean;
+    }>;
+  };
   topTypes: Array<{
     typeId: string;
     name: string;
@@ -134,10 +148,11 @@ const DashboardPage: React.FC = () => {
     { id: 'kpis', label: 'KPI-Karten', visible: true, order: 1 },
     { id: 'topTypes', label: 'Top 5 Kleidungstypen', visible: true, order: 2 },
     { id: 'recentTransactions', label: 'Letzte Transaktionen', visible: true, order: 3 },
-    { id: 'statusOverview', label: 'Status-Übersicht', visible: true, order: 4 },
-    { id: 'inactiveEmployees', label: 'Inaktive Mitarbeiter mit Kleidung', visible: true, order: 5 },
-    { id: 'employeesWithoutClothing', label: 'Mitarbeiter ohne Kleidung', visible: true, order: 6 },
-    { id: 'pendingConfirmations', label: 'Ausstehende Bestätigungen', visible: true, order: 7 },
+    { id: 'expiringItems', label: 'Ablaufende Artikel', visible: true, order: 4 },
+    { id: 'statusOverview', label: 'Status-Übersicht', visible: true, order: 5 },
+    { id: 'inactiveEmployees', label: 'Inaktive Mitarbeiter mit Kleidung', visible: true, order: 6 },
+    { id: 'employeesWithoutClothing', label: 'Mitarbeiter ohne Kleidung', visible: true, order: 7 },
+    { id: 'pendingConfirmations', label: 'Ausstehende Bestätigungen', visible: true, order: 8 },
   ];
 
   // Widget-Konfiguration laden/speichern
@@ -808,6 +823,67 @@ const DashboardPage: React.FC = () => {
                           <Text type="secondary">
                             Fällig bis: {dayjs(conf.expiresAt).format('DD.MM.YYYY HH:mm')}
                           </Text>
+                        </Space>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
+          </Card>
+        </Col>
+      </Row>
+      ))}
+
+      {/* Ablaufende Artikel */}
+      {renderWidget('expiringItems', (
+        <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+        <Col xs={24}>
+          <Card
+            title="Ablaufende Artikel"
+            extra={
+              <Space>
+                <Tag color={data.expiringItems.total > 0 ? 'orange' : 'green'}>
+                  {data.expiringItems.total}
+                </Tag>
+                <Button size="small" onClick={() => navigate('/clothing-items')}>
+                  Artikel öffnen
+                </Button>
+              </Space>
+            }
+          hoverable
+            onClick={() => navigate('/clothing-items')}
+            style={{ cursor: 'pointer' }}
+          >
+            {data.expiringItems.total === 0 ? (
+              <Text type="secondary">Keine ablaufenden Artikel.</Text>
+            ) : (
+              <List
+                dataSource={data.expiringItems.items}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={
+                        <Space>
+                          <Text>{item.internalId} - {item.typeName}</Text>
+                          <Tag color={item.isExpired ? 'red' : item.isExpiringSoon ? 'orange' : 'default'}>
+                            {item.isExpired 
+                              ? `ÜBERFÄLLIG (${Math.abs(item.daysUntilExpiration || 0)} Tage)`
+                              : item.isExpiringSoon 
+                              ? `${item.daysUntilExpiration} Tage`
+                              : 'In Ordnung'
+                            }
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <Space direction="vertical" size={0}>
+                          <Text type="secondary">Mitarbeiter: {item.employeeName}</Text>
+                          {item.expirationDate && (
+                            <Text type="secondary">
+                              Ablaufdatum: {dayjs(item.expirationDate).format('DD.MM.YYYY')}
+                            </Text>
+                          )}
                         </Space>
                       }
                     />
