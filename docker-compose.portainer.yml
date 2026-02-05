@@ -6,6 +6,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        CERTIFICATE_CN: ${CERTIFICATE_CN}
+        CERTIFICATE_PASSWORD: ${CERTIFICATE_PASSWORD}
     image: bekleidung-backend:latest
     container_name: bekleidung-backend-prod
     restart: unless-stopped

@@ -28,10 +28,15 @@ const startServer = async () => {
       process.exit(1);
     }
 
+    if (!process.env.CERTIFICATE_PASSWORD) {
+      logger.error('CERTIFICATE_PASSWORD is not set');
+      process.exit(1);
+    }
+
     const pfx = fs.readFileSync(certPath);
     const httpsOptions = {
       pfx,
-      passphrase: 'password123',
+      passphrase: process.env.CERTIFICATE_PASSWORD,
     };
 
     const server = https.createServer(httpsOptions, app).listen(config.port, config.host, () => {
