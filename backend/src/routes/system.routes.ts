@@ -26,9 +26,20 @@ router.get(
     let logoFile: string | undefined;
     try {
       if (fs.existsSync(uploadsDir)) {
-        logoFile = fs
+        // Find all company logos and get the newest one by modification time
+        const logoFiles = fs
           .readdirSync(uploadsDir)
-          .find((file) => file.startsWith('company-logo.'));
+          .filter((file) => file.startsWith('company-logo.'));
+        
+        if (logoFiles.length > 0) {
+          // Sort by modification time (newest first)
+          logoFiles.sort((a, b) => {
+            const statsA = fs.statSync(path.join(uploadsDir, a));
+            const statsB = fs.statSync(path.join(uploadsDir, b));
+            return statsB.mtimeMs - statsA.mtimeMs;
+          });
+          logoFile = logoFiles[0];
+        }
       }
     } catch {
       logoFile = undefined;
