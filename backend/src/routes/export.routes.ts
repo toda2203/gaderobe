@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
+import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { exportService } from '../services/export.service';
 import { uploadZip } from '../middleware/upload';
 import prisma from '../utils/database';
@@ -50,9 +50,7 @@ router.post(
     });
 
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Keine Datei hochgeladen',
+      throw new AppError(400, 'VALIDATION_ERROR', 'Keine Datei hochgeladen', {
         details: 'req.file ist leer',
         contentType: req.headers['content-type'],
       });

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '../middleware/error.middleware';
+import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { masterDataService } from '../services/master-data.service';
 
 const router = Router();
@@ -15,10 +15,7 @@ router.get(
     const { type } = req.params;
 
     if (!['SIZE', 'CATEGORY', 'DEPARTMENT'].includes(type.toUpperCase())) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid type. Must be SIZE, CATEGORY, or DEPARTMENT',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'Invalid type. Must be SIZE, CATEGORY, or DEPARTMENT');
     }
 
     const items = await masterDataService.getByType(type.toUpperCase() as any);

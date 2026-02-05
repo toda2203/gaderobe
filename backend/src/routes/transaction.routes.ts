@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
+import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { transactionService } from '../services/transaction.service';
 import { emailService } from '../services/email.service';
 import { PrismaClient } from '@prisma/client';
@@ -152,10 +152,7 @@ router.post(
     const { employeeId, clothingItemIds, conditionOnIssue, notes } = req.body;
 
     if (!employeeId || !clothingItemIds || !Array.isArray(clothingItemIds) || clothingItemIds.length === 0 || !conditionOnIssue) {
-      return res.status(400).json({
-        success: false,
-        error: 'employeeId, clothingItemIds (array), and conditionOnIssue are required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'employeeId, clothingItemIds (array), and conditionOnIssue are required');
     }
 
     const transactions = await transactionService.issueBulkClothing({
@@ -284,10 +281,7 @@ router.post(
     const { employeeId, clothingItemId, conditionOnIssue, notes } = req.body;
 
     if (!employeeId || !clothingItemId || !conditionOnIssue) {
-      return res.status(400).json({
-        success: false,
-        error: 'employeeId, clothingItemId, and conditionOnIssue are required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'employeeId, clothingItemId, and conditionOnIssue are required');
     }
 
     const transaction = await transactionService.issueClothing({
@@ -387,19 +381,13 @@ router.post(
     const { items, generalNotes } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'items array is required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'items array is required');
     }
 
     // Validate each item
     for (const item of items) {
       if (!item.transactionId || !item.conditionOnReturn) {
-        return res.status(400).json({
-          success: false,
-          error: 'Each item must have transactionId and conditionOnReturn',
-        });
+        throw new AppError(400, 'VALIDATION_ERROR', 'Each item must have transactionId and conditionOnReturn');
       }
     }
 
@@ -428,10 +416,7 @@ router.post(
     const { transactionIds, conditionOnReturn, notes } = req.body;
 
     if (!transactionIds || !Array.isArray(transactionIds) || transactionIds.length === 0 || !conditionOnReturn) {
-      return res.status(400).json({
-        success: false,
-        error: 'transactionIds (array) and conditionOnReturn are required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'transactionIds (array) and conditionOnReturn are required');
     }
 
     const transactions = await transactionService.returnBulkClothing({
@@ -460,10 +445,7 @@ router.post(
     const { conditionOnReturn, notes } = req.body;
 
     if (!conditionOnReturn) {
-      return res.status(400).json({
-        success: false,
-        error: 'conditionOnReturn is required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'conditionOnReturn is required');
     }
 
     const transaction = await transactionService.returnClothing({

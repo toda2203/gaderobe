@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
+import { asyncHandler, AppError } from '../middleware/error.middleware';
 import { clothingTypeService } from '../services/clothing-type.service';
 
 const router = Router();
@@ -73,10 +73,7 @@ router.post(
     const { name, description, category, availableSizes, expectedLifespanMonths, requiresDepartment, imageUrl } = req.body;
 
     if (!name || !category || !availableSizes || !Array.isArray(availableSizes)) {
-      return res.status(400).json({
-        success: false,
-        error: 'name, category, and availableSizes (array) are required',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'name, category, and availableSizes (array) are required');
     }
 
     const clothingType = await clothingTypeService.createClothingType({

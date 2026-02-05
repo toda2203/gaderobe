@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize, AuthenticatedRequest } from '../middleware/auth.middleware';
-import { asyncHandler } from '../middleware/error.middleware';
+import { asyncHandler, AppError } from '../middleware/error.middleware';
 import prisma from '../utils/database';
 import { backupScheduler } from '../scheduler/backup.scheduler';
 
@@ -101,10 +101,7 @@ router.get(
     });
 
     if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Konfiguration nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Konfiguration nicht gefunden');
     }
 
     res.json({
@@ -138,24 +135,15 @@ router.post(
 
     // Validation
     if (!frequency || !['DAILY', 'WEEKLY', 'MONTHLY'].includes(frequency)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ungültige Frequenz. Erlaubt: DAILY, WEEKLY, MONTHLY',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'Ungültige Frequenz. Erlaubt: DAILY, WEEKLY, MONTHLY');
     }
 
     if (hour === undefined || hour < 0 || hour > 23) {
-      return res.status(400).json({
-        success: false,
-        error: 'Stunde muss zwischen 0 und 23 liegen',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'Stunde muss zwischen 0 und 23 liegen');
     }
 
     if (minute !== undefined && (minute < 0 || minute > 59)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Minute muss zwischen 0 und 59 liegen',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'Minute muss zwischen 0 und 59 liegen');
     }
 
     // Build cron expression
@@ -169,20 +157,14 @@ router.post(
       case 'WEEKLY':
         const dow = dayOfWeek ?? 0;
         if (dow < 0 || dow > 6) {
-          return res.status(400).json({
-            success: false,
-            error: 'Tag der Woche muss zwischen 0 (Sonntag) und 6 (Samstag) liegen',
-          });
+          throw new AppError(400, 'VALIDATION_ERROR', 'Tag der Woche muss zwischen 0 (Sonntag) und 6 (Samstag) liegen');
         }
         schedule = `${min} ${hour} * * ${dow}`;
         break;
       case 'MONTHLY':
         const dom = dayOfMonth ?? 1;
         if (dom < 1 || dom > 31) {
-          return res.status(400).json({
-            success: false,
-            error: 'Tag des Monats muss zwischen 1 und 31 liegen',
-          });
+          throw new AppError(400, 'VALIDATION_ERROR', 'Tag des Monats muss zwischen 1 und 31 liegen');
         }
         schedule = `${min} ${hour} ${dom} * *`;
         break;
@@ -248,10 +230,7 @@ router.put(
     });
 
     if (!existingConfig) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Konfiguration nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Konfiguration nicht gefunden');
     }
 
     // Build new cron expression
@@ -317,10 +296,7 @@ router.delete(
     });
 
     if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Konfiguration nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Konfiguration nicht gefunden');
     }
 
     // Stop scheduler
@@ -351,10 +327,7 @@ router.post(
     });
 
     if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Konfiguration nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Konfiguration nicht gefunden');
     }
 
     const updated = await prisma.backupConfiguration.update({
@@ -389,10 +362,7 @@ router.post(
     });
 
     if (!config) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Konfiguration nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Konfiguration nicht gefunden');
     }
 
     // Execute backup asynchronously
@@ -422,10 +392,7 @@ router.post(
 
     // Validate filename (prevent directory traversal)
     if (filename.includes('..') || filename.includes('/')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ungültiger Dateiname',
-      });
+      throw new AppError(400, 'VALIDATION_ERROR', 'Ungültiger Dateiname');
     }
 
     const backupDir = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups');
@@ -433,10 +400,7 @@ router.post(
 
     // Verify file exists and is in backup directory
     if (!fs.existsSync(filePath) || !filePath.startsWith(backupDir)) {
-      return res.status(404).json({
-        success: false,
-        error: 'Backup-Datei nicht gefunden',
-      });
+      throw new AppError(404, 'NOT_FOUND', 'Backup-Datei nicht gefunden');
     }
 
     try {
