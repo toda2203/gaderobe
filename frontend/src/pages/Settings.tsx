@@ -1282,10 +1282,7 @@ export default function Settings() {
                     children: (
                       <div>
                         <Paragraph>
-                          <strong>Organization:</strong> Autohaus Graupner GmbH
-                        </Paragraph>
-                        <Paragraph>
-                          <strong>Support Email:</strong> <a href="mailto:edv@autohaus-graupner.de">edv@autohaus-graupner.de</a>
+                          <strong>Support Email:</strong> <a href="mailto:daniel@troks.de">daniel@troks.de</a>
                         </Paragraph>
                         <Paragraph>
                           <strong>GitHub Repository:</strong> <a href="https://github.com/toda2203/Gaderobe" target="_blank" rel="noopener noreferrer">toda2203/Gaderobe</a>
