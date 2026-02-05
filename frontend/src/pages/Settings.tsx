@@ -1037,20 +1037,273 @@ export default function Settings() {
             )}
           </Card>
           
-          <Card title="Systeminfo">
-            <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
-              <p>
-                <strong>App Version:</strong> 1.0.0
-              </p>
-              <p>
-                <strong>Umgebung:</strong> Production
-              </p>
-              <p>
-                <strong>Datenbank:</strong> SQLite
-              </p>
-              <p>
-                <strong>API Version:</strong> 1.0
-              </p>
+          <Card title="Systeminfo" style={{ marginBottom: 24 }}>
+            <Row gutter={[24, 24]}>
+              {/* Left Column - Version & Status Info */}
+              <Col xs={24} sm={24} md={12}>
+                <div style={{ padding: '16px', backgroundColor: '#fafafa', borderRadius: '6px', marginBottom: 16 }}>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                      Application Version
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: '600', color: '#000' }}>
+                      v1.0.0
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#999', marginTop: 4 }}>
+                      Enterprise Workplace Apparel Management
+                    </div>
+                  </div>
+                </div>
+
+                <Row gutter={16} style={{ marginBottom: 16 }}>
+                  <Col span={12}>
+                    <div style={{ padding: '12px', backgroundColor: '#f6f8fb', borderRadius: '6px', border: '1px solid #e8eef5' }}>
+                      <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                        Environment
+                      </div>
+                      <Tag color="blue" style={{ fontSize: 12, padding: '4px 8px' }}>Production</Tag>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ padding: '12px', backgroundColor: '#f6f8fb', borderRadius: '6px', border: '1px solid #e8eef5' }}>
+                      <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                        API Version
+                      </div>
+                      <Tag color="cyan" style={{ fontSize: 12, padding: '4px 8px' }}>v1.0</Tag>
+                    </div>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <div style={{ padding: '12px', backgroundColor: '#f6f8fb', borderRadius: '6px', border: '1px solid #e8eef5' }}>
+                      <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                        Database
+                      </div>
+                      <Tag icon={<DatabaseOutlined />} color="green" style={{ fontSize: 12, padding: '4px 8px' }}>
+                        SQLite
+                      </Tag>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ padding: '12px', backgroundColor: '#f6f8fb', borderRadius: '6px', border: '1px solid #e8eef5' }}>
+                      <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                        Status
+                      </div>
+                      <Tag icon={<CheckCircleOutlined />} color="success" style={{ fontSize: 12, padding: '4px 8px' }}>
+                        Operational
+                      </Tag>
+                    </div>
+                  </Col>
+                </Row>
+              </Col>
+
+              {/* Right Column - Tech Stack */}
+              <Col xs={24} sm={24} md={12}>
+                <div style={{ padding: '16px', backgroundColor: '#fafafa', borderRadius: '6px' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <Text strong style={{ fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+                      Tech Stack
+                    </Text>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
+                    <div>
+                      <div style={{ color: '#666', marginBottom: 4 }}>Frontend</div>
+                      <Tag>React 18.x</Tag>
+                      <br />
+                      <Tag style={{ marginTop: 4 }}>TypeScript</Tag>
+                    </div>
+                    <div>
+                      <div style={{ color: '#666', marginBottom: 4 }}>Backend</div>
+                      <Tag>Node.js 20</Tag>
+                      <br />
+                      <Tag style={{ marginTop: 4 }}>Express.js</Tag>
+                    </div>
+                    <div>
+                      <div style={{ color: '#666', marginBottom: 4 }}>ORM</div>
+                      <Tag>Prisma 5.x</Tag>
+                    </div>
+                    <div>
+                      <div style={{ color: '#666', marginBottom: 4 }}>UI Framework</div>
+                      <Tag>Ant Design 5</Tag>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+
+            <Divider />
+
+            {/* System Health & Resources */}
+            <div style={{ marginTop: 16 }}>
+              <Title level={5} style={{ marginTop: 0 }}>System Health</Title>
+              
+              <Row gutter={16}>
+                <Col xs={24} sm={12} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="Database Connection"
+                      value="Connected"
+                      valueStyle={{ color: '#52c41a', fontSize: 14 }}
+                      prefix={<CheckCircleOutlined />}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="API Status"
+                      value="Operational"
+                      valueStyle={{ color: '#52c41a', fontSize: 14 }}
+                      prefix={<CheckCircleOutlined />}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="Authentication"
+                      value="Enabled"
+                      valueStyle={{ color: '#1890ff', fontSize: 14 }}
+                      prefix={<CheckCircleOutlined />}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} sm={12} md={6}>
+                  <Card size="small" style={{ textAlign: 'center' }}>
+                    <Statistic
+                      title="HTTPS"
+                      value="Active"
+                      valueStyle={{ color: '#52c41a', fontSize: 14 }}
+                      prefix={<CheckCircleOutlined />}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider />
+
+            {/* Additional Information */}
+            <div style={{ marginTop: 16 }}>
+              <Title level={5} style={{ marginTop: 0 }}>Additional Information</Title>
+              
+              <Collapse
+                items={[
+                  {
+                    key: 'dependencies',
+                    label: (
+                      <span>
+                        <Text strong>Dependencies & Libraries</Text>
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                          Key production packages
+                        </Text>
+                      </span>
+                    ),
+                    children: (
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <div>
+                            <Text strong>Backend Core</Text>
+                            <ul style={{ fontSize: 12, margin: '8px 0 0 0', paddingLeft: 20 }}>
+                              <li>express (4.x) - HTTP server framework</li>
+                              <li>@prisma/client - ORM & database client</li>
+                              <li>jsonwebtoken - JWT authentication</li>
+                              <li>helmet - HTTP security headers</li>
+                              <li>express-rate-limit - Rate limiting</li>
+                              <li>multer - File upload handling</li>
+                              <li>nodemailer - Email delivery</li>
+                              <li>node-cron - Scheduled tasks</li>
+                            </ul>
+                          </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <div>
+                            <Text strong>Frontend Core</Text>
+                            <ul style={{ fontSize: 12, margin: '8px 0 0 0', paddingLeft: 20 }}>
+                              <li>react (18.x) - UI library</li>
+                              <li>antd (5.x) - Component library</li>
+                              <li>zustand - State management</li>
+                              <li>axios - HTTP client</li>
+                              <li>react-router - Client routing</li>
+                              <li>vite - Build tool & dev server</li>
+                            </ul>
+                          </div>
+                        </Col>
+                      </Row>
+                    ),
+                  },
+                  {
+                    key: 'features',
+                    label: (
+                      <span>
+                        <Text strong>Enabled Features</Text>
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                          System capabilities
+                        </Text>
+                      </span>
+                    ),
+                    children: (
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <ul style={{ fontSize: 12, margin: 0, paddingLeft: 20 }}>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Role-Based Access Control</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />JWT Authentication</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Microsoft Entra ID Integration</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Automated Backups</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Audit Logging</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Email Notifications</li>
+                          </ul>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <ul style={{ fontSize: 12, margin: 0, paddingLeft: 20 }}>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />QR Code Tracking</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />PDF Report Generation</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Image Upload & Management</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Transaction Protocols</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Digital Confirmations</li>
+                            <li><CheckCircleOutlined style={{ color: 'green', marginRight: 8 }} />Rate Limiting & Security</li>
+                          </ul>
+                        </Col>
+                      </Row>
+                    ),
+                  },
+                  {
+                    key: 'contact',
+                    label: (
+                      <span>
+                        <Text strong>Support & Resources</Text>
+                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                          Documentation & help
+                        </Text>
+                      </span>
+                    ),
+                    children: (
+                      <div>
+                        <Paragraph>
+                          <strong>Organization:</strong> Autohaus Graupner GmbH
+                        </Paragraph>
+                        <Paragraph>
+                          <strong>Support Email:</strong> <a href="mailto:edv@autohaus-graupner.de">edv@autohaus-graupner.de</a>
+                        </Paragraph>
+                        <Paragraph>
+                          <strong>GitHub Repository:</strong> <a href="https://github.com/toda2203/Gaderobe" target="_blank" rel="noopener noreferrer">toda2203/Gaderobe</a>
+                        </Paragraph>
+                        <Paragraph>
+                          <strong>Documentation:</strong> Available in <code>README.md</code> and GitHub Wiki
+                        </Paragraph>
+                        <Alert
+                          type="info"
+                          message="For detailed API documentation, deployment guide, and troubleshooting steps, please refer to the README.md file included with this application."
+                          style={{ marginTop: 12 }}
+                        />
+                      </div>
+                    ),
+                  },
+                ]}
+                size="small"
+              />
             </div>
           </Card>
         </div>
