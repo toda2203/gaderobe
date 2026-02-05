@@ -445,7 +445,7 @@ docker exec bekleidung-backend-prod sqlite3 /app/data/bekleidung.db \
 ## 📝 Lizenz
 
 Proprietary Software – Alle Rechte vorbehalten  
-Entwickelt für Autohaus Graupner GmbH
+Entwickelt für Demo Zwecke
 
 ---
 
