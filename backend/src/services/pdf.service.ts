@@ -685,7 +685,7 @@ class PDFService {
 
       // Footer
       doc.fontSize(8).text(
-        'Autohaus Graupner - Bekleidungsverwaltung',
+        'Bekleidungsverwaltung',
         50,
         doc.page.height - 50,
         { align: 'center', width: doc.page.width - 100 }
