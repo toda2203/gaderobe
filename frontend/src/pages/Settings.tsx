@@ -114,7 +114,7 @@ export default function Settings() {
 
   // Email mode states
   const [emailMode, setEmailMode] = useState<'production' | 'development'>('production');
-  const [testAddress, setTestAddress] = useState<string>('d.troks+clothing@autohaus-graupner.de');
+  const [testAddress, setTestAddress] = useState<string>('');
   const [emailModeLoading, setEmailModeLoading] = useState(false);
 
   useEffect(() => {
