@@ -135,7 +135,9 @@ export default function Settings() {
     try {
       const response = await api.get('/system/company-logo');
       const imageUrl = response.data?.data?.imageUrl || null;
-      setLogoUrl(imageUrl ? `${window.location.origin}${imageUrl}` : null);
+      // Add cache buster to force fresh image load
+      const cacheBuster = new Date().getTime();
+      setLogoUrl(imageUrl ? `${window.location.origin}${imageUrl}?t=${cacheBuster}` : null);
     } catch {
       setLogoUrl(null);
     }
@@ -157,8 +159,9 @@ export default function Settings() {
       });
 
       const imageUrl = response.data.data.imageUrl;
-      // Construct full URL with origin for proper loading
-      const fullImageUrl = `${window.location.origin}${imageUrl}`;
+      // Construct full URL with origin and cache buster for proper loading
+      const cacheBuster = new Date().getTime();
+      const fullImageUrl = `${window.location.origin}${imageUrl}?t=${cacheBuster}`;
       setLogoUrl(fullImageUrl);
       message.success('Firmenlogo erfolgreich hochgeladen');
       
