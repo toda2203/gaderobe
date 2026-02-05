@@ -453,7 +453,7 @@ Entwickelt für Autohaus Graupner GmbH
 
 Für technische Fragen oder Bug Reports:
 - GitHub Issues: [toda2203/Gaderobe/issues](https://github.com/toda2203/Gaderobe/issues)
-- Email: edv@autohaus-graupner.de
+- Email: daniel@troks.de
 
 ---
 
