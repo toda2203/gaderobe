@@ -10,9 +10,13 @@ export interface EmailTemplate {
 
 // Email-Modus: Aus .env geladen (nicht änderbar zur Laufzeit)
 const EMAIL_MODE = (process.env.EMAIL_MODE as 'production' | 'development') || 'development';
-const TEST_EMAIL_ADDRESS = process.env.TEST_EMAIL_ADDRESS || 'd.troks+clothing@autohaus-graupner.de';
+const TEST_EMAIL_ADDRESS = process.env.TEST_EMAIL_ADDRESS || '';
 
-console.log(`[EMAIL SERVICE] Initialized with mode: ${EMAIL_MODE}, test address: ${TEST_EMAIL_ADDRESS}`);
+if (EMAIL_MODE === 'development' && !TEST_EMAIL_ADDRESS) {
+  console.warn('[EMAIL SERVICE] WARNING: EMAIL_MODE is "development" but TEST_EMAIL_ADDRESS is not set in .env!');
+}
+
+console.log(`[EMAIL SERVICE] Initialized with mode: ${EMAIL_MODE}, test address: ${TEST_EMAIL_ADDRESS || 'not configured'}`);
 
 export class EmailService {
   private transporter: nodemailer.Transporter;
