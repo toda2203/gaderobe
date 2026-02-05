@@ -17,30 +17,30 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3077
       - HOST=0.0.0.0
-      - APP_HOST=${APP_HOST:-10.56.131.165}
-      - FRONTEND_PORT=3078
+      - APP_HOST=${APP_HOST}
+      - FRONTEND_PORT=${FRONTEND_PORT:-3078}
       - DATABASE_URL=file:/app/data/bekleidung.db
-      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-be790d07-21e7-4658-9556-3fae61284778}
-      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-03a7bfec-90e5-4c23-ba88-25f014c62f74}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
-      - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI:-https://10.56.131.165:3078/auth/callback}
-      - AZURE_AUTHORITY=https://login.microsoftonline.com/${AZURE_TENANT_ID:-be790d07-21e7-4658-9556-3fae61284778}
-      - JWT_SECRET=${JWT_SECRET:-bekleidung_app_secure_key_2025_production_autohaus}
-      - JWT_EXPIRES_IN=1h
-      - JWT_REFRESH_EXPIRES_IN=7d
-      - CORS_ORIGIN=https://${APP_HOST:-10.56.131.165}:${FRONTEND_PORT:-3078}
+      - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI}
+      - AZURE_AUTHORITY=https://login.microsoftonline.com/${AZURE_TENANT_ID}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - CORS_ORIGIN=https://${APP_HOST}:${FRONTEND_PORT:-3078}
       - UPLOAD_DIR=/app/uploads
-      - MAX_FILE_SIZE=5242880
-      - ALLOWED_IMAGE_TYPES=image/jpeg,image/png,image/webp
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
+      - ALLOWED_IMAGE_TYPES=${ALLOWED_IMAGE_TYPES:-image/jpeg,image/png,image/webp}
       - BACKUP_DIR=/app/backups
-      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_DIR=/app/logs
-      - SMTP_HOST=${SMTP_HOST:-smtp.office365.com}
+      - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-edv@autohaus-graupner.de}
+      - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
-      - SMTP_FROM=${SMTP_FROM:-Garderobe System <edv@autohaus-graupner.de>}
+      - SMTP_FROM=${SMTP_FROM}
       - EMAIL_MODE=${EMAIL_MODE}
       - TEST_EMAIL_ADDRESS=${TEST_EMAIL_ADDRESS}
     volumes:
@@ -71,10 +71,10 @@ services:
       - "3078:443"
       - "8080:80"
     environment:
-      - VITE_API_URL=https://${APP_HOST:-10.56.131.165}:3077/api
-      - VITE_AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-03a7bfec-90e5-4c23-ba88-25f014c62f74}
-      - VITE_AZURE_TENANT_ID=${AZURE_TENANT_ID:-be790d07-21e7-4658-9556-3fae61284778}
-      - VITE_AZURE_REDIRECT_URI=https://${APP_HOST:-10.56.131.165}:3078/auth/callback
+      - VITE_API_URL=https://${APP_HOST}:3077/api
+      - VITE_AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - VITE_AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - VITE_AZURE_REDIRECT_URI=https://${APP_HOST}:${FRONTEND_PORT:-3078}/auth/callback
     volumes:
       # SSL Zertifikate werden auf dem Portainer-Server bereitgestellt
       - bekleidung-ssl:/etc/nginx/ssl:ro
