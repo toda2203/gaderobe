@@ -45,7 +45,7 @@ RUN mkdir -p /app/data /app/uploads /app/backups /app/logs
 ARG CERTIFICATE_CN
 ARG CERTIFICATE_PASSWORD
 RUN openssl req -x509 -newkey rsa:4096 -keyout /tmp/key.pem -out /tmp/cert.pem -days 365 -nodes \
-  -subj "/C=DE/ST=NRW/L=Dortmund/O=Autohaus Graupner/CN=${CERTIFICATE_CN}" && \
+  -subj "/CN=${CERTIFICATE_CN}" && \
   openssl pkcs12 -export -out /app/cert.pfx -inkey /tmp/key.pem -in /tmp/cert.pem -passout pass:${CERTIFICATE_PASSWORD} && \
     rm /tmp/key.pem /tmp/cert.pem
 
