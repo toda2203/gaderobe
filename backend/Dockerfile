@@ -43,7 +43,7 @@ RUN mkdir -p /app/data /app/uploads /app/backups /app/logs
 
 # Generate self-signed certificate for HTTPS
 RUN openssl req -x509 -newkey rsa:4096 -keyout /tmp/key.pem -out /tmp/cert.pem -days 365 -nodes \
-    -subj "/C=DE/ST=NRW/L=Dortmund/O=Autohaus Graupner/CN=10.56.131.165" && \
+    -subj "/C=DE/ST=NRW/L=Dortmund/O=Autohaus Graupner/CN=localhost" && \
     openssl pkcs12 -export -out /app/cert.pfx -inkey /tmp/key.pem -in /tmp/cert.pem -passout pass:password123 && \
     rm /tmp/key.pem /tmp/cert.pem
 
