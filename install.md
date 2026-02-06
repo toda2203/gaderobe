@@ -1,4 +1,6 @@
-Jetzt Richtig:
+
+Beispiel für User: Daniel & IP 10.56.131.165
+
 Phase 1: Vorbereitung (lokal)
 
 
@@ -72,7 +74,7 @@ SSL_DIR=$(docker volume inspect bekleidung_bekleidung-ssl --format '{{.Mountpoin
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout "$SSL_DIR/key.pem" \
   -out "$SSL_DIR/cert.pem" \
-  -subj "/C=DE/ST=BW/L=Nuertingen/O=Graupner/CN=10.56.131.165"
+  -subj "/C=DE/ST=BW/L=STANDORT/O=FIRMENAME/CN=10.56.131.165"
 
 sudo chown 644 "$SSL_DIR/cert.pem"
 sudo chown 600 "$SSL_DIR/key.pem"
@@ -112,7 +114,7 @@ https://10.56.131.165:3078
 Einem Benutzer muss die Adminrolle zugewiesen werden:
 
 docker exec -i bekleidung-backend-prod npx prisma db execute --stdin <<EOF
-UPDATE employees SET role = 'ADMIN' WHERE email = 'd.troks@autohaus-graupner.de';
+UPDATE employees SET role = 'ADMIN' WHERE email = 'mailadresse@des_admins.de';
 EOF
 
 Auto Backup: 
@@ -148,7 +150,7 @@ echo "✅ Alles gelöscht - Stand 0!"
 
 
 
-Productiv vs Development in der env Datei anpassen und anschlißend:
+Productiv vs Development in der env Datei anpassen und anschließend:
 
 cd /opt/bekleidung && docker compose -f docker-compose.portainer.yml down backend && sleep 2 && docker compose -f docker-compose.portainer.yml up -d backend && sleep 5 && docker logs bekleidung-backend-prod 2>&1 | grep "EMAIL SERVICE"
 
@@ -159,5 +161,5 @@ Github:
 
 cd /opt/bekleidung
 git add .
-git commit -m "Feature: Neue Filteroptionen im Dashboard hinzugefügt"
+git commit -m "Feature: Neues Feature gebaut"
 git push origin main
