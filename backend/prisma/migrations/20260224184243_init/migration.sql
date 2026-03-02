@@ -1,14 +1,14 @@
 -- CreateTable
 CREATE TABLE "employees" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "entraId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
     "lastName" TEXT NOT NULL,
     "department" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "role" TEXT NOT NULL DEFAULT 'READ_ONLY',
-    "lastSyncAt" DATETIME NOT NULL,
+    "isHidden" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -102,14 +102,66 @@ CREATE TABLE "department_allocations" (
     CONSTRAINT "department_allocations_clothingTypeId_fkey" FOREIGN KEY ("clothingTypeId") REFERENCES "clothing_types" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "employees_entraId_key" ON "employees"("entraId");
+-- CreateTable
+CREATE TABLE "confirmations" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "token" TEXT NOT NULL,
+    "transactionId" TEXT,
+    "protocolId" TEXT,
+    "employeeId" TEXT NOT NULL,
+    "protocolType" TEXT NOT NULL,
+    "itemsJson" TEXT NOT NULL,
+    "confirmed" BOOLEAN NOT NULL DEFAULT false,
+    "confirmedAt" DATETIME,
+    "confirmedBy" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "protocolFilePath" TEXT,
+    "emailSent" BOOLEAN NOT NULL DEFAULT false,
+    "emailSentAt" DATETIME,
+    "emailError" TEXT,
+    "expiresAt" DATETIME NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "confirmations_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "master_data_items" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "type" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "backup_configurations" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "enabled" BOOLEAN NOT NULL DEFAULT false,
+    "schedule" TEXT NOT NULL,
+    "frequency" TEXT NOT NULL,
+    "hour" INTEGER NOT NULL,
+    "minute" INTEGER NOT NULL DEFAULT 0,
+    "dayOfWeek" INTEGER,
+    "dayOfMonth" INTEGER,
+    "retentionDays" INTEGER NOT NULL DEFAULT 30,
+    "includeImages" BOOLEAN NOT NULL DEFAULT true,
+    "includeProtocols" BOOLEAN NOT NULL DEFAULT true,
+    "notifyOnSuccess" BOOLEAN NOT NULL DEFAULT true,
+    "notifyOnError" BOOLEAN NOT NULL DEFAULT true,
+    "notificationEmail" TEXT,
+    "lastRunAt" DATETIME,
+    "lastRunSuccess" BOOLEAN,
+    "lastRunError" TEXT,
+    "nextRunAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
 
 -- CreateIndex
 CREATE UNIQUE INDEX "employees_email_key" ON "employees"("email");
-
--- CreateIndex
-CREATE INDEX "employees_entraId_idx" ON "employees"("entraId");
 
 -- CreateIndex
 CREATE INDEX "employees_email_idx" ON "employees"("email");
@@ -119,6 +171,9 @@ CREATE INDEX "employees_department_idx" ON "employees"("department");
 
 -- CreateIndex
 CREATE INDEX "employees_status_idx" ON "employees"("status");
+
+-- CreateIndex
+CREATE INDEX "employees_isHidden_idx" ON "employees"("isHidden");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "clothing_types_name_key" ON "clothing_types"("name");
@@ -182,3 +237,24 @@ CREATE INDEX "department_allocations_department_idx" ON "department_allocations"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "department_allocations_department_clothingTypeId_key" ON "department_allocations"("department", "clothingTypeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "confirmations_token_key" ON "confirmations"("token");
+
+-- CreateIndex
+CREATE INDEX "confirmations_token_idx" ON "confirmations"("token");
+
+-- CreateIndex
+CREATE INDEX "confirmations_employeeId_idx" ON "confirmations"("employeeId");
+
+-- CreateIndex
+CREATE INDEX "confirmations_confirmed_idx" ON "confirmations"("confirmed");
+
+-- CreateIndex
+CREATE INDEX "confirmations_expiresAt_idx" ON "confirmations"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "master_data_items_type_order_idx" ON "master_data_items"("type", "order");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "master_data_items_type_value_key" ON "master_data_items"("type", "value");

@@ -11,25 +11,17 @@ export interface LoginResponse {
     lastName: string;
     department: string | null;
     role: string;
+    profileImageUrl?: string | null;
   };
 }
 
 export const authService = {
-  /**
-   * Get Microsoft login URL
-   */
-  async getLoginUrl(): Promise<string> {
-    const response = await apiClient.get<ApiResponse<{ authUrl: string }>>('/auth/login');
-    return response.data.data!.authUrl;
-  },
 
   /**
-   * Handle OAuth callback
+   * Lokaler Login
    */
-  async handleCallback(code: string): Promise<LoginResponse> {
-    const response = await apiClient.get<ApiResponse<LoginResponse>>('/auth/callback', {
-      params: { code },
-    });
+  async localLogin(email: string, password: string): Promise<LoginResponse> {
+    const response = await apiClient.post<ApiResponse<LoginResponse>>('/auth/login', { email, password });
     return response.data.data!;
   },
 

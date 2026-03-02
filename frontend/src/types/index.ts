@@ -46,12 +46,13 @@ export interface User {
   department: string | null;
   role: UserRole;
   status: EmployeeStatus;
+  profileImageUrl?: string | null;
 }
 
 export interface Employee {
   id: string;
-  entraId: string;
   email: string;
+  passwordHash?: string;
   firstName: string;
   lastName: string;
   department: string | null;

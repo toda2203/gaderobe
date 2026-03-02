@@ -114,7 +114,7 @@
 | **File Upload** | Multer | 1.4.x |
 | **Scheduling** | node-cron | 3.x |
 | **PDF Generation** | PDFKit | 0.14.x |
-| **Container** | Docker + Docker Compose | Latest |
+| **Container** | (entfernt) | - |
 | **Web Server** | Nginx (Production) | Latest |
 
 ---
@@ -122,7 +122,6 @@
 ## 📋 Anforderungen
 
 ### Minimal Requirements
-- **Docker & Docker Compose** 20.10+
 - **Node.js** 20.x (für lokale Entwicklung)
 - **PostgreSQL** 14+ (für Production, optional SQLite für Development)
 - **Microsoft Entra ID** Tenant (für Authentifizierung)
@@ -142,38 +141,7 @@
 
 ## 🚀 Schnellstart
 
-### Lokal (Docker-basiert)
 
-```bash
-# Repository klonen
-git clone https://github.com/toda2203/Gaderobe.git
-cd Gaderobe
-
-# Environment-Datei erstellen und konfigurieren
-cp backend/.env.example backend/.env
-# Backend/.env anpassen:
-# - AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
-# - JWT_SECRET
-# - SMTP Credentials
-
-# Docker Images bauen
-docker build -t bekleidung-backend:latest ./backend
-docker build -t bekleidung-frontend:latest ./frontend
-
-# Stack starten
-docker compose -f docker-compose.portainer.yml up -d
-
-# Datenbank migrieren
-docker exec bekleidung-backend-prod npx prisma migrate deploy
-
-# Admin-User erstellen
-docker exec -i bekleidung-backend-prod npx prisma db execute --stdin <<EOF
-UPDATE employees SET role = 'ADMIN' WHERE email = 'your-email@example.com';
-EOF
-
-# Browser öffnen
-# https://localhost:3078
-```
 
 ### Lokal (Native)
 
@@ -196,19 +164,7 @@ npm run dev
 
 ## 🐳 Deployment
 
-### Production-Deployment auf Linux Server
 
-Siehe [`install.md`](install.md) für vollständige Step-by-Step Anleitung:
-
-```bash
-# Phase 1: Server vorbereiten
-# Phase 2: Repository klonen
-# Phase 3: Dateien hochladen via SCP
-# Phase 4: Volumes & SSL Zertifikate erstellen
-# Phase 5: Docker Images bauen
-# Phase 6: Docker Compose Stack starten
-# Phase 7: Admin-User zuweisen & testen
-```
 
 **Key Production Features:**
 - SSL/TLS Verschlüsselung (self-signed oder Let's Encrypt)
@@ -376,55 +332,21 @@ audit_logs (Audit-Protokolle)
 
 ## 🔧 Troubleshooting
 
-### Container startet nicht
-```bash
-# Logs prüfen
-docker logs bekleidung-backend-prod
-docker logs bekleidung-frontend-prod
 
-# Container neu starten
-docker compose -f docker-compose.portainer.yml restart
-
-# Volumes prüfen (Permissions)
-ls -la /var/lib/docker/volumes/bekleidung_*/
-```
 
 ### Datenbank-Verbindungsfehler
 ```bash
-# Mehrere DB-Dateien vorhanden?
-docker exec bekleidung-backend-prod find /app -name "*.db"
 
-# DATABASE_URL in .env überprüfen
-cat /opt/bekleidung/.env | grep DATABASE_URL
-
-# Migrations durchführen
-docker exec bekleidung-backend-prod npx prisma migrate deploy
 ```
 
 ### Bilder werden nach Import nicht angezeigt
 ```bash
-# Force Overwrite Mode verwenden
-curl -X POST "http://localhost:3077/api/export/import?forceOverwrite=true" \
-  -F "file=@backup.zip"
 
-# Oder Bilder manuell validieren
-docker exec bekleidung-backend-prod npx prisma db execute --stdin <<EOF
-SELECT imageUrl, COUNT(*) FROM clothing_items WHERE imageUrl IS NOT NULL GROUP BY imageUrl;
-EOF
 ```
 
 ### Azure Entra ID Sync schlägt fehl
 ```bash
-# AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET überprüfen
-echo $AZURE_TENANT_ID
-echo $AZURE_CLIENT_ID
 
-# Sync manuell triggern
-curl -X POST http://localhost:3077/api/sync/employees \
-  -H "Authorization: Bearer {TOKEN}"
-
-# Sync-Status prüfen
-curl http://localhost:3077/api/sync/status
 ```
 
 ### Performance-Optimierungen
@@ -459,3 +381,13 @@ Für technische Fragen oder Bug Reports:
 
 **Zuletzt aktualisiert:** Februar 2026  
 **Status:** Production Ready
+
+
+
+
+
+sudo multitail -l "journalctl -u gaderobe-backend -f" -l "journalctl -u gaderobe-frontend -f"
+
+
+journalctl -u gaderobe-frontend -f
+journalctl -u gaderobe-backend -f

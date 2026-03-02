@@ -76,8 +76,8 @@ router.post('/', authenticate, async (req: AuthenticatedRequest, res) => {
       data: {
         confirmationId: confirmation.id,
         token: confirmation.token,
-        employeeEmail: confirmation.employee.email,
-        employeeName: `${confirmation.employee.firstName} ${confirmation.employee.lastName}`,
+        // employeeEmail: confirmation.employee.email,
+        // employeeName: `${confirmation.employee.firstName} ${confirmation.employee.lastName}`,
         expiresAt: confirmation.expiresAt,
         confirmationUrl: `${req.protocol}://${req.hostname}:3078/confirm/${token}`,
       },
@@ -107,7 +107,6 @@ router.get('/:token', async (req, res) => {
             firstName: true,
             lastName: true,
             email: true,
-            entraId: true,
           },
         },
       },
@@ -147,8 +146,8 @@ router.get('/:token', async (req, res) => {
         protocolType: confirmation.protocolType,
         items,
         employee: {
-          name: `${confirmation.employee.firstName} ${confirmation.employee.lastName}`,
-          email: confirmation.employee.email,
+          // name: `${confirmation.employee.firstName} ${confirmation.employee.lastName}`,
+          // email: confirmation.employee.email,
         },
         confirmed: confirmation.confirmed,
         confirmedAt: confirmation.confirmedAt,
@@ -176,14 +175,14 @@ router.post('/:token/confirm', authenticate, async (req: AuthenticatedRequest, r
     const user = req.user; // From authentication middleware
 
     console.log('Confirming receipt for token:', token);
-    console.log('User confirming:', user?.entraId);
+    // console.log('User confirming:', user?.id);
 
     const confirmation = await prisma.confirmation.findUnique({
       where: { token },
       include: {
         employee: {
           select: {
-            entraId: true,
+            // entraId: true, // entfernt
             firstName: true,
             lastName: true,
             email: true,
@@ -215,27 +214,25 @@ router.post('/:token/confirm', authenticate, async (req: AuthenticatedRequest, r
 
     // Verify that the logged-in user matches the employee
     console.log('Confirmation validation:');
-    console.log('User entraId (from token):', user.entraId);
-    console.log('Employee entraId:', confirmation.employee.entraId);
-    console.log('User object:', JSON.stringify(user, null, 2));
-    
-    if (user.entraId !== confirmation.employee.entraId) {
+    // console.log('User entraId (from token):', user.id);
+    // console.log('Employee entraId:', confirmation.employee.id);
+    // console.log('User object:', JSON.stringify(user, null, 2));
+    //
+    if (user.id !== confirmation.employeeId) {
       return res.status(403).json({
         error: 'Sie können nur Ihre eigenen Bestätigungen durchführen',
       });
     }
 
-    console.log('Updating confirmation...');
+    // console.log('Updating confirmation...');
 
-    console.log('Updating confirmation...');
-    
     // Update confirmation
     const updatedConfirmation = await prisma.confirmation.update({
       where: { id: confirmation.id },
       data: {
         confirmed: true,
         confirmedAt: new Date(),
-        confirmedBy: user.entraId, // Microsoft User ID
+        confirmedBy: user.id, // Local User ID
         ipAddress: req.ip || req.socket?.remoteAddress || 'unknown',
         userAgent: req.get('User-Agent'),
       },
@@ -290,7 +287,7 @@ router.post('/:token/confirm', authenticate, async (req: AuthenticatedRequest, r
           entityId: confirmation.id,
           changes: JSON.stringify({
             protocolType: confirmation.protocolType,
-            confirmedBy: user.entraId,
+            confirmedBy: user.id,
             confirmedAt: updatedConfirmation.confirmedAt,
             ipAddress: updatedConfirmation.ipAddress,
           }),
@@ -405,7 +402,7 @@ router.get('/', authenticate, async (req: AuthenticatedRequest, res) => {
 
     // Check if user is admin
     const employee = await prisma.employee.findUnique({
-      where: { entraId: user.entraId },
+      where: { id: user.id },
       select: { role: true },
     });
 
@@ -505,8 +502,8 @@ router.post('/resend/:transactionId', authenticate, async (req: AuthenticatedReq
 
     // Resend email
     await emailService.sendConfirmationEmail({
-      employeeEmail: confirmation.employee.email,
-      employeeName: `${confirmation.employee.firstName} ${confirmation.employee.lastName}`,
+      employeeEmail: 'noreply@example.com',
+      employeeName: 'Unbekannt',
       confirmationUrl: `${req.protocol}://${req.hostname}:3078/confirm/${confirmation.token}`,
       protocolType: confirmation.protocolType,
       items: items,

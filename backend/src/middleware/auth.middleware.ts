@@ -1,3 +1,4 @@
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
@@ -11,68 +12,74 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     role: UserRole;
-    entraId: string;
+    status: string;
+    firstName: string;
+    lastName: string;
+    department?: string;
   };
 }
 
 export const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'Kein gültiges Authentifizierungs-Token gefunden',
+          code: 'NO_TOKEN',
+          message: 'Kein Authentifizierungstoken gefunden',
         },
       });
+      return;
     }
-
-    const token = authHeader.substring(7);
-
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret) as {
-        userId: string;
-        email: string;
-        entraId: string;
-      };
-
-      // Fetch user from database
-      const user = await prisma.employee.findUnique({
-        where: { id: decoded.userId },
-        select: { id: true, email: true, role: true, entraId: true, status: true },
-      });
-
-      if (!user || user.status !== 'ACTIVE') {
-        return res.status(401).json({
-          success: false,
-          error: {
-            code: 'USER_INACTIVE',
-            message: 'Benutzer ist nicht aktiv',
-          },
-        });
-      }
-
-      req.user = {
-        id: user.id,
-        email: user.email,
-        role: user.role as UserRole,
-        entraId: user.entraId,
-      };
-
-      next();
-    } catch (error) {
-      return res.status(401).json({
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, config.jwt.secret) as {
+      id: string;
+      email: string;
+      role: UserRole;
+    };
+    // Fetch user from database
+    const user = await prisma.employee.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        firstName: true,
+        lastName: true,
+        department: true,
+      },
+    });
+    if (!user || user.status !== 'ACTIVE') {
+      res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_TOKEN',
-          message: 'Ungültiges oder abgelaufenes Token',
+          code: 'USER_INACTIVE',
+          message: 'Benutzer ist nicht aktiv',
         },
       });
+      return;
     }
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role as UserRole,
+      status: user.status,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      department: user.department,
+    };
+    next();
   } catch (error) {
-    next(error);
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'INVALID_TOKEN',
+        message: 'Ungültiges oder abgelaufenes Token',
+      },
+    });
+    return;
   }
 };
 
@@ -88,19 +95,16 @@ export const authorize = (...roles: UserRole[]) => {
       });
       return;
     }
-
     if (!roles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
         error: {
           code: 'FORBIDDEN',
           message: 'Keine Berechtigung für diese Aktion',
-          details: { required: roles, current: req.user.role },
         },
       });
       return;
     }
-
     next();
   };
 };

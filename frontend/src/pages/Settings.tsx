@@ -44,16 +44,11 @@ import {
 import axios from 'axios';
 import api from '../services/api';
 import { apiClient } from '../services/api';
-import { useAuthStore } from '../store/authStore';
+// ...entfernt, da Alias-Import verwendet wird
 
 const { Title, Text, Paragraph } = Typography;
 
-interface SyncStatus {
-  lastSync: string;
-  totalEmployees: number;
-  activeEmployees: number;
-  inactiveEmployees: number;
-}
+
 
 interface DatabaseStats {
   employees: number;
@@ -81,11 +76,19 @@ interface ImportResult {
   };
 }
 
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+
 export default function Settings() {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (user && (user.role === 'READ_ONLY' || user.role === 'WAREHOUSE')) {
+      navigate('/');
+    }
+  }, [user, navigate]);
   const { message } = App.useApp();
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
@@ -97,7 +100,6 @@ export default function Settings() {
   const [imageValidation, setImageValidation] = useState<any>(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [forceOverwrite, setForceOverwrite] = useState(false);
-  const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
   const canEdit = user && user.role !== 'READ_ONLY';
   const canExport = user && (user.role === 'ADMIN' || user.role === 'HR');
@@ -119,7 +121,6 @@ export default function Settings() {
 
   useEffect(() => {
     console.log('[SETTINGS] useEffect mounted, user:', user?.id);
-    fetchSyncStatus();
     loadMasterData();
     loadLogo();
     // Load email mode immediately - doesn't require user context
@@ -196,7 +197,7 @@ export default function Settings() {
     try {
       setLoading(true);
       const response = await api.get('/sync/status');
-      setSyncStatus(response.data.data);
+      // entfernt: setSyncStatus(response.data.data);
     } catch (error) {
       message.error('Fehler beim Laden des Sync-Status');
       console.error(error);
@@ -240,7 +241,7 @@ export default function Settings() {
   // Manual sync trigger
   const handleManualSync = async () => {
     try {
-      setSyncing(true);
+      // entfernt: setSyncing(true);
       const response = await api.post('/sync/employees', {});
       message.success(
         `Sync erfolgreich! ${response.data.data.created} neue, ${response.data.data.updated} aktualisierte und ${response.data.data.deleted} deaktivierte Mitarbeiter`
@@ -251,7 +252,7 @@ export default function Settings() {
         error.response?.data?.error || 'Fehler beim Synchronisieren'
       );
     } finally {
-      setSyncing(false);
+      // entfernt: setSyncing(false);
     }
   };
 
@@ -815,111 +816,7 @@ export default function Settings() {
         </>
       ),
     },
-    {
-      key: 'sync',
-      label: 'Entra ID Sync',
-      children: (
-        <Card
-          title="Entra ID Synchronisierung"
-          style={{ marginBottom: '24px' }}
-        >
-          <Alert
-            message="Automatische Synchronisierung"
-            description="Mitarbeiter werden automatisch jede Stunde von Entra ID synchronisiert. Neue Mitarbeiter werden automatisch hinzugefügt und Austritte werden vermerkt."
-            type="info"
-            showIcon
-            style={{ marginBottom: '16px' }}
-          />
 
-          {/* Sync Status */}
-          <Spin spinning={loading}>
-            {syncStatus && (
-              <>
-                <Row gutter={16} style={{ marginBottom: '24px' }}>
-                  <Col span={6}>
-                    <Card>
-                      <Statistic
-                        title="Gesamt Mitarbeiter"
-                        value={syncStatus.totalEmployees}
-                        prefix={<CheckCircleOutlined />}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card>
-                      <Statistic
-                        title="Aktiv"
-                        value={syncStatus.activeEmployees}
-                        valueStyle={{ color: '#52c41a' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card>
-                      <Statistic
-                        title="Inaktiv"
-                        value={syncStatus.inactiveEmployees}
-                        valueStyle={{ color: '#faad14' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={6}>
-                    <Card>
-                      <div>
-                        <div style={{ fontSize: '12px', color: '#999' }}>
-                          Letzter Sync
-                        </div>
-                        <div style={{ fontSize: '14px', marginTop: '8px' }}>
-                          <Tag color="blue">
-                            {new Date(syncStatus.lastSync).toLocaleString('de-DE')}
-                          </Tag>
-                        </div>
-                      </div>
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Divider />
-
-                {/* Sync Controls */}
-                {isAdmin ? (
-                  <div>
-                    <p style={{ marginBottom: '16px' }}>
-                      <strong>Manueller Sync:</strong> Klicken Sie auf den Button
-                      unten, um Mitarbeiter jetzt von Entra ID zu synchronisieren.
-                    </p>
-                    <Space>
-                      <Button
-                        type="primary"
-                        icon={<SyncOutlined />}
-                        onClick={handleManualSync}
-                        loading={syncing}
-                        disabled={syncing}
-                      >
-                        {syncing ? 'Synchronisiert...' : 'Jetzt synchronisieren'}
-                      </Button>
-                      <Button
-                        onClick={fetchSyncStatus}
-                        loading={loading}
-                        disabled={syncing || loading}
-                      >
-                        Status aktualisieren
-                      </Button>
-                    </Space>
-                  </div>
-                ) : (
-                  <Alert
-                    message="Nur Administratoren können die Synchronisierung manuell starten"
-                    type="warning"
-                    showIcon
-                  />
-                )}
-              </>
-            )}
-          </Spin>
-        </Card>
-      ),
-    },
     {
       key: 'system',
       label: 'Systeminfo',

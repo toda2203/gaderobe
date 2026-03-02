@@ -6,7 +6,8 @@ dotenv.config();
 export const config = {
   // Server
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '3000', 10),
+  // Fester Backend-Port für Entwicklung
+  port: 3077,
   host: process.env.HOST || '0.0.0.0',
 
   // Database
@@ -33,13 +34,13 @@ export const config = {
   corsOrigin: (() => {
     const appHost = process.env.APP_HOST || 'localhost';
     const frontendPort = process.env.FRONTEND_PORT || '3078';
-    const backendPort = process.env.BACKEND_PORT || '3077';
+    const backendPort = process.env.BACKEND_PORT || '3078';
     
     return [
       'http://localhost:3078',
-      'http://localhost:3077',
       'https://localhost:3078',
-      'https://localhost:3077',
+      `http://${appHost}:${backendPort}`,
+      `https://${appHost}:${backendPort}`,
       `http://${appHost}:${frontendPort}`,
       `https://${appHost}:${frontendPort}`,
       `http://${appHost}:${backendPort}`,

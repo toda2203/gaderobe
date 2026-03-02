@@ -50,7 +50,7 @@ export class ExportService {
     // Employees CSV
     const employeesData = employees.map((emp) => ({
       ID: emp.id,
-      'Entra-ID': emp.entraId,
+      // 'Entra-ID': emp.entraId,
       Email: emp.email,
       Vorname: emp.firstName,
       Nachname: emp.lastName,
@@ -58,7 +58,7 @@ export class ExportService {
       Status: emp.status,
       Rolle: emp.role,
       Versteckt: emp.isHidden ? 'Ja' : 'Nein',
-      'Zuletzt synchronisiert': emp.lastSyncAt?.toISOString() || '',
+      // 'Zuletzt synchronisiert': emp.lastSyncAt?.toISOString() || '',
       Erstellt: emp.createdAt.toISOString(),
       Aktualisiert: emp.updatedAt.toISOString(),
     }));
@@ -334,7 +334,7 @@ export class ExportService {
             await tx.employee.create({
               data: {
                 id: row['ID'],
-                entraId: row['Entra-ID'] || `entra-${Date.now()}`,
+                // entraId: row['Entra-ID'] || `entra-${Date.now()}`,
                 email: row['Email'],
                 firstName: row['Vorname'],
                 lastName: row['Nachname'],
@@ -342,6 +342,7 @@ export class ExportService {
                 status: row['Status'] || 'ACTIVE',
                 role: row['Rolle'] || 'READ_ONLY',
                 isHidden: row['Versteckt'] === 'Ja',
+                passwordHash: '$2a$10$wqjQwQwQwQwQwQwQwQwQwOQwQwQwQwQwQwQwQwQwQwQwQwQwQW', // Hash für 'changeme'
               },
             });
             imported.employees++;

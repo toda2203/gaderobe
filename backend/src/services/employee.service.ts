@@ -1,12 +1,18 @@
 import prisma from '../utils/database';
 import logger from '../utils/logger';
 
+
 export interface CreateEmployeeInput {
   firstName: string;
   lastName: string;
   email: string;
   department?: string;
+  passwordHash?: string;
+  passwordPlain?: string;
+  sendCredentials?: boolean;
+  profileImageUrl?: string;
 }
+
 
 export interface UpdateEmployeeInput {
   firstName?: string;
@@ -16,205 +22,184 @@ export interface UpdateEmployeeInput {
   status?: 'ACTIVE' | 'INACTIVE' | 'LEFT';
   role?: 'ADMIN' | 'WAREHOUSE' | 'HR' | 'READ_ONLY';
   isHidden?: boolean;
+  passwordPlain?: string;
+  sendCredentials?: boolean;
+  profileImageUrl?: string;
 }
 
-export class EmployeeService {
-  /**
-   * Get all employees with optional filtering
-   * For READ_ONLY users: only return their own employee record
-   */
-  async getAllEmployees(filters?: { 
-    status?: string; 
-    role?: string; 
-    department?: string; 
-    includeHidden?: boolean;
-    requestingUserId?: string; // For READ_ONLY filtering
-    requestingUserRole?: string; // For READ_ONLY filtering
-  }) {
-    try {
-      const where: any = filters?.includeHidden ? {} : { isHidden: false };
-
-      if (filters?.status) {
-        where.status = filters.status;
-      }
-      if (filters?.role) {
-        where.role = filters.role;
-      }
-      if (filters?.department) {
-        where.department = filters.department;
-      }
-
-      // READ_ONLY users can only see their own employee record
-      if (filters?.requestingUserRole === 'READ_ONLY' && filters?.requestingUserId) {
-        where.id = filters.requestingUserId;
-      }
-
-      const employees = await prisma.employee.findMany({
-        where,
+class EmployeeService {
+    async getEmployeesByDepartment(department: string) {
+      return await prisma.employee.findMany({
+        where: { department },
         include: {
           transactions: true,
           auditLogs: true,
         },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      logger.info(`Retrieved ${employees.length} employees`);
-      return employees;
-    } catch (error) {
-      logger.error('Error fetching employees:', error);
-      throw new Error('Failed to fetch employees');
-    }
-  }
-
-  /**
-   * Get single employee by ID
-   */
-  async getEmployeeById(id: string) {
-    try {
-      const employee = await prisma.employee.findUnique({
-        where: { id },
-        include: {
-          transactions: {
-            include: {
-              clothingItem: true,
-            },
-          },
-          auditLogs: true,
-        },
-      });
-
-      if (!employee) {
-        throw new Error('Employee not found');
-      }
-
-      logger.info(`Retrieved employee: ${employee.email}`);
-      return employee;
-    } catch (error) {
-      logger.error('Error fetching employee:', error);
-      throw new Error('Failed to fetch employee');
-    }
-  }
-
-  /**
-   * Create new employee (DEPRECATED - use Entra ID sync instead)
-   */
-  async createEmployee(input: CreateEmployeeInput) {
-    // Manual employee creation is no longer allowed
-    // All employees must be synced from Microsoft Entra ID
-    throw new Error('Manual employee creation is not allowed. Employees are automatically synchronized from Microsoft Entra ID. Please ensure the user exists in Entra ID and run a sync operation.');
-  }
-
-  /**
-   * Update employee
-   */
-  async updateEmployee(id: string, input: UpdateEmployeeInput, performedById?: string) {
-    try {
-      // Check if email exists and belongs to different employee
-      if (input.email) {
-        const existingEmployee = await prisma.employee.findUnique({
-          where: { email: input.email },
-        });
-
-        if (existingEmployee && existingEmployee.id !== id) {
-          throw new Error('Email already in use by another employee');
-        }
-      }
-
-      const data: any = {};
-
-      if (input.firstName) data.firstName = input.firstName;
-      if (input.lastName) data.lastName = input.lastName;
-      if (input.email) data.email = input.email;
-      if (input.department) data.department = input.department;
-      if (input.status) data.status = input.status;
-      if (input.role) data.role = input.role;
-      if (typeof input.isHidden === 'boolean') data.isHidden = input.isHidden;
-
-      const employee = await prisma.employee.update({
-        where: { id },
-        data,
-      });
-
-      logger.info(`Updated employee: ${employee.email}`);
-
-      // Create audit log
-      await this.createAuditLog(id, 'UPDATE', input, performedById);
-
-      return employee;
-    } catch (error) {
-      logger.error('Error updating employee:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete employee (soft delete by marking as LEFT)
-   */
-  async deleteEmployee(id: string, performedById?: string) {
-    try {
-      const employee = await prisma.employee.update({
-        where: { id },
-        data: {
-          status: 'LEFT',
-        },
-      });
-
-      logger.info(`Deleted employee: ${employee.email}`);
-
-      // Create audit log
-      await this.createAuditLog(id, 'DELETE', {
-        status: 'LEFT',
-      }, performedById);
-
-      return employee;
-    } catch (error) {
-      logger.error('Error deleting employee:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get employee by email (for OAuth login integration)
-   */
-  async getEmployeeByEmail(email: string) {
-    try {
-      const employee = await prisma.employee.findUnique({
-        where: { email },
-      });
-
-      return employee;
-    } catch (error) {
-      logger.error('Error fetching employee by email:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get employees by department
-   */
-  async getEmployeesByDepartment(department: string) {
-    try {
-      const employees = await prisma.employee.findMany({
-        where: {
-          department,
-          status: 'ACTIVE',
-          isHidden: false,
-        },
         orderBy: { lastName: 'asc' },
       });
-
-      return employees;
-    } catch (error) {
-      logger.error('Error fetching employees by department:', error);
-      throw error;
     }
+  // sendCredentialsMail entfernt – Versand erfolgt jetzt ausschließlich über EmailService.sendCredentialsEmail
+
+  async getAllEmployees(filters: any) {
+    let where: any = {};
+    if (!filters || !filters.includeHidden) where.isHidden = false;
+    if (filters && filters.status) where.status = filters.status;
+    if (filters && filters.role) where.role = filters.role;
+    if (filters && filters.department) where.department = filters.department;
+    if (filters && filters.requestingUserRole === 'READ_ONLY' && filters.requestingUserId) where.id = filters.requestingUserId;
+    const employees = await prisma.employee.findMany({
+      where,
+      include: {
+        transactions: true,
+        auditLogs: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    logger.info(`Retrieved ${employees.length} employees`);
+    return employees;
   }
 
-  /**
-   * Create audit log entry
-   */
-  private async createAuditLog(employeeId: string, action: string, changes: any, performedById?: string) {
-    try {
+  async getEmployeeById(id: string) {
+    const employee = await prisma.employee.findUnique({
+      where: { id },
+      include: {
+        transactions: {
+          include: {
+            clothingItem: true,
+          },
+        },
+        auditLogs: true,
+      },
+    });
+    return employee;
+  }
+
+  async updateEmployee(id: string, input: UpdateEmployeeInput, performedById?: string) {
+    if (input.email) {
+      const existingEmployee = await prisma.employee.findUnique({
+        where: { email: input.email },
+      });
+      // Typkonflikt vermeiden: id als String vergleichen
+      if (existingEmployee && String(existingEmployee.id) !== String(id)) {
+        throw new Error('E-Mail bereits vergeben');
+      }
+    }
+    const data = {} as any;
+    if (input.firstName) data.firstName = input.firstName;
+    if (input.lastName) data.lastName = input.lastName;
+    if (input.email) data.email = input.email;
+    if (input.department) data.department = input.department;
+    if (input.status) data.status = input.status;
+    if (input.role) data.role = input.role;
+    if (typeof input.isHidden === 'boolean') data.isHidden = input.isHidden;
+    if (input.profileImageUrl) data.profileImageUrl = input.profileImageUrl;
+
+    // Passwort-Logik: Nur passwordPlain prüfen und hashen, falls gesetzt
+    if (typeof input.passwordPlain === 'string' && input.passwordPlain.length > 0) {
+      const bcrypt = require('bcryptjs');
+      data.passwordHash = await bcrypt.hash(input.passwordPlain, 10);
+      console.log('[updateEmployee] passwordHash gesetzt:', data.passwordHash);
+    }
+    // Entferne alle undefined-Felder aus data
+    Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
+    const employee = await prisma.employee.update({
+      where: { id },
+      data,
+    });
+    logger.info(`Updated employee: ${employee.email}`);
+    await this.createAuditLog(id, 'UPDATE', input, performedById);
+    // Zugangsdaten-Mail nur noch über EmailService.sendCredentialsEmail versenden
+    if ((input.sendCredentials == true) && input.email) {
+      try {
+        const EmailService = require('./email.service').EmailService;
+        const emailService = new EmailService();
+        await emailService.sendCredentialsEmail(
+          input.email,
+          input.firstName || '',
+          input.lastName || '',
+          input.passwordPlain || ''
+        );
+        console.log('[MAIL] Zugangsdaten-Mail versendet an', input.email);
+      } catch (err) {
+        console.error('[MAIL] Fehler beim Versand der Zugangsdaten-Mail an', input.email, ':', err?.message || err);
+      }
+    }
+    return employee;
+    }
+  
+    async createEmployee(input: CreateEmployeeInput) {
+      const existing = await prisma.employee.findUnique({ where: { email: input.email } });
+      if (existing) {
+        throw new Error('E-Mail bereits vergeben');
+      }
+      let passwordHash = '';
+      if (input.passwordPlain) {
+        const bcrypt = require('bcryptjs');
+        passwordHash = await bcrypt.hash(input.passwordPlain, 10);
+      } else if (input.passwordHash) {
+        passwordHash = input.passwordHash;
+      }
+      const employee = await prisma.employee.create({
+        data: {
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          department: input.department,
+          status: 'ACTIVE',
+          role: 'READ_ONLY',
+          isHidden: false,
+          passwordHash,
+          profileImageUrl: input.profileImageUrl,
+        },
+      });
+      console.log('[MAIL-DEBUG] input.sendCredentials:', input.sendCredentials, '(', typeof input.sendCredentials, ')');
+      console.log('[MAIL-DEBUG] input.passwordPlain:', input.passwordPlain, '(', typeof input.passwordPlain, ')');
+      // Zugangsdaten-Mail nur noch über EmailService.sendCredentialsEmail versenden
+      if ((input.sendCredentials == true) && input.passwordPlain) {
+        try {
+          const EmailService = require('./email.service').EmailService;
+          const emailService = new EmailService();
+          await emailService.sendCredentialsEmail(
+            input.email,
+            input.firstName || '',
+            input.lastName || '',
+            input.passwordPlain || ''
+          );
+          console.log('[MAIL] Zugangsdaten-Mail versendet an', input.email);
+        } catch (err) {
+          console.error('[MAIL] Fehler beim Versand der Zugangsdaten-Mail an', input.email, ':', err?.message || err);
+        }
+      } else {
+        console.log('[MAIL-DEBUG] Bedingung NICHT erfüllt, kein Mailversand!');
+      }
+      // ...dann wie gewohnt patchen
+      return employee;
+    }
+  
+    async deleteEmployee(id: string, performedById?: string) {
+      const employee = await prisma.employee.findUnique({ where: { id } });
+      if (!employee) throw new Error('Mitarbeiter nicht gefunden');
+      if (employee.status === 'LEFT') {
+        // Hard delete: remove all dependent records first
+        await prisma.transaction.deleteMany({ where: { employeeId: id } });
+        await prisma.auditLog.deleteMany({ where: { performedById: id } });
+        await prisma.auditLog.deleteMany({ where: { entityId: id } });
+        await prisma.employee.delete({ where: { id } });
+        logger.info(`Permanently deleted employee: ${employee.email}`);
+        await this.createAuditLog(id, 'DELETE', { status: 'PERMANENTLY_DELETED' }, performedById);
+        return { id, email: employee.email, status: 'PERMANENTLY_DELETED' };
+      } else {
+        const updated = await prisma.employee.update({
+          where: { id },
+          data: { status: 'LEFT' },
+        });
+        logger.info(`Soft deleted employee: ${updated.email}`);
+        await this.createAuditLog(id, 'DELETE', { status: 'LEFT' }, performedById);
+        return updated;
+      }
+    }
+  
+    private async createAuditLog(employeeId: string, action: string, changes: any, performedById?: string) {
       await prisma.auditLog.create({
         data: {
           entityType: 'Employee',
@@ -226,35 +211,23 @@ export class EmployeeService {
           userAgent: 'employee-service',
         },
       });
-    } catch (error) {
-      logger.error('Error creating audit log:', error);
-      // Don't throw - audit logging shouldn't block main operations
     }
-  }
 
-  /**
-   * Get statistics
-   */
-  async getEmployeeStats() {
-    try {
+    async getEmployeeStats() {
       const whereVisible = { isHidden: false };
-
       const total = await prisma.employee.count({ where: whereVisible });
       const active = await prisma.employee.count({ where: { ...whereVisible, status: 'ACTIVE' } });
       const inactive = await prisma.employee.count({ where: { ...whereVisible, status: 'INACTIVE' } });
-
       const byRole = await prisma.employee.groupBy({
         by: ['role'],
         where: whereVisible,
         _count: true,
       });
-
       const byDepartment = await prisma.employee.groupBy({
         by: ['department'],
         where: whereVisible,
         _count: true,
       });
-
       return {
         total,
         active,
@@ -262,11 +235,6 @@ export class EmployeeService {
         byRole: byRole.map((r: any) => ({ role: r.role, count: r._count })),
         byDepartment: byDepartment.map((d: any) => ({ department: d.department, count: d._count })),
       };
-    } catch (error) {
-      logger.error('Error getting employee stats:', error);
-      throw error;
     }
   }
-}
-
-export const employeeService = new EmployeeService();
+  export const employeeService = new EmployeeService();

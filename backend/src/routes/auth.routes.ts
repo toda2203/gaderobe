@@ -3,56 +3,76 @@ import { authService } from '../services/auth.service';
 import { asyncHandler } from '../middleware/error.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { authRateLimiter } from '../middleware/rate-limit.middleware';
-import { config } from '../config';
 import prisma from '../utils/database';
 
 const router = Router();
 
+
 /**
- * @route   GET /api/auth/login
- * @desc    Initiate Microsoft Entra ID login
- * @access  Public
+ * @route   POST /api/auth/login
+ * @desc    Lokaler Login (E-Mail + Passwort)
  */
-router.get(
+router.post(
   '/login',
   authRateLimiter,
   asyncHandler(async (req, res) => {
-    const authUrl = await authService.getAuthUrl(config.azure.redirectUri);
-    res.json({
-      success: true,
-      data: { authUrl },
-    });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_CREDENTIALS', message: 'E-Mail und Passwort erforderlich' },
+        timestamp: new Date().toISOString(),
+      });
+    }
+    try {
+      const result = await authService.localLogin(email, password);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      // Logging für Fehleranalyse
+      // eslint-disable-next-line no-console
+      console.error('[LOGIN ERROR]', {
+        error: error,
+        email,
+        time: new Date().toISOString(),
+        path: req.path,
+        body: req.body,
+      });
+      res.status(401).json({
+        success: false,
+        error: { code: 'LOGIN_FAILED', message: error.message },
+        timestamp: new Date().toISOString(),
+      });
+    }
   })
 );
 
 /**
- * @route   GET /api/auth/callback
- * @desc    Handle callback from Microsoft after authentication
- * @access  Public
+ * @route   POST /api/auth/set-password
+ * @desc    Passwort setzen/ändern (nur für eingeloggte User oder Admin)
  */
-router.get(
-  '/callback',
-  authRateLimiter,
-  asyncHandler(async (req, res) => {
-    const { code } = req.query;
-
-    if (!code || typeof code !== 'string') {
+router.post(
+  '/set-password',
+  authenticate,
+  asyncHandler(async (req: any, res) => {
+    const { password, userId } = req.body;
+    const targetUserId = userId || req.user.id;
+    if (!password) {
       return res.status(400).json({
         success: false,
-        error: {
-          code: 'MISSING_AUTH_CODE',
-          message: 'Authorization code is required',
-        },
+        error: { code: 'MISSING_PASSWORD', message: 'Passwort erforderlich' },
+        timestamp: new Date().toISOString(),
       });
     }
-
-    const result = await authService.handleCallback(code, config.azure.redirectUri);
-
-    res.json({
-      success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
-    });
+    // Nur Admin darf für andere setzen
+    if (userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Nur Admin darf für andere Nutzer das Passwort setzen.' },
+        timestamp: new Date().toISOString(),
+      });
+    }
+    await authService.setPassword(targetUserId, password);
+    res.json({ success: true });
   })
 );
 
@@ -61,30 +81,7 @@ router.get(
  * @desc    Refresh access token
  * @access  Public (with refresh token)
  */
-router.post(
-  '/refresh',
-  asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body;
 
-    if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'MISSING_REFRESH_TOKEN',
-          message: 'Refresh token is required',
-        },
-      });
-    }
-
-    const result = await authService.refreshAccessToken(refreshToken);
-
-    res.json({
-      success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
-    });
-  })
-);
 
 /**
  * @route   POST /api/auth/logout

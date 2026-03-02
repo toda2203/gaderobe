@@ -16,14 +16,26 @@ import clothingTypeRoutes from './routes/clothing-type.routes';
 import transactionRoutes from './routes/transaction.routes';
 import reportRoutes from './routes/report.routes';
 import healthRoutes from './routes/health.routes';
-import syncRoutes from './routes/sync.routes';
 import exportRoutes from './routes/export.routes';
 import confirmationRoutes from './routes/confirmations';
 import systemRoutes from './routes/system.routes';
 import publicDataRoutes from './routes/public-data.routes';
 import backupConfigRoutes from './routes/backup-config.routes';
 
+
 const app: Application = express();
+
+// Globales Request-Logging für Debugging
+app.use((req, res, next) => {
+  // eslint-disable-next-line no-console
+  console.log('[REQUEST]', {
+    method: req.method,
+    url: req.originalUrl,
+    body: req.body,
+    time: new Date().toISOString(),
+  });
+  next();
+});
 
 // ========================================
 // Security & Performance Middleware
@@ -66,7 +78,6 @@ app.use('/uploads', express.static(config.uploadDir));
 // ========================================
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/sync', syncRoutes);
 app.use('/api/public', publicDataRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/clothing-types', clothingTypeRoutes);

@@ -8,7 +8,6 @@ export interface EmailTemplate {
   text: string;
 }
 
-// Email-Modus: Aus .env geladen (nicht änderbar zur Laufzeit)
 const EMAIL_MODE = (process.env.EMAIL_MODE as 'production' | 'development') || 'development';
 const TEST_EMAIL_ADDRESS = process.env.TEST_EMAIL_ADDRESS || '';
 
@@ -22,15 +21,13 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    // For development/production - configure based on your email provider
-    // This is a basic SMTP configuration - adjust based on your email service
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.office365.com', // Microsoft Exchange
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
+      host: process.env.SMTP_HOST || 'smtp.office365.com',
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: false,
       auth: {
-        user: process.env.SMTP_USER, // Your email
-        pass: process.env.SMTP_PASS, // Your password or app password
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
       tls: {
         ciphers: 'SSLv3',
@@ -38,16 +35,14 @@ export class EmailService {
     });
   }
 
-  // Email-Modus abrufen (read-only)
   static getEmailMode() {
     return { 
       mode: EMAIL_MODE, 
       testAddress: TEST_EMAIL_ADDRESS,
-      isConfigurable: false // Nicht zur Laufzeit änderbar
+      isConfigurable: false
     };
   }
 
-  // Instanzmethode zum Abrufen der Konfiguration
   getConfig() {
     return { 
       mode: EMAIL_MODE, 
@@ -56,12 +51,76 @@ export class EmailService {
     };
   }
 
-  // Zieladresse bestimmen (basierend auf Modus aus .env)
   private getRecipientEmail(originalEmail: string): { to: string; originalEmail: string } {
     if (EMAIL_MODE === 'development') {
       return { to: TEST_EMAIL_ADDRESS, originalEmail };
     }
     return { to: originalEmail, originalEmail };
+  }
+
+  async sendCredentialsEmail(to: string, firstName: string, lastName: string, password: string): Promise<boolean> {
+    try {
+      const appUrl = `https://${process.env.APP_HOST || 'localhost'}:${process.env.FRONTEND_PORT || '3078'}`;
+      const subject = 'Ihre Zugangsdaten für die Garderobe-App';
+      const text = `Hallo ${firstName} ${lastName},\n\nWillkommen im Garderobe-System!\n\nDeine Zugangsdaten:\nBenutzername: ${to}\nKennwort: ${password}\nApp-Link: ${appUrl}\n\nBitte ändere dein Passwort nach dem ersten Login.\n\nViele Grüße\nDein Garderobe-Team`;
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ihre Zugangsdaten – Garderobe</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; margin: 0; }
+    .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #0001; overflow: hidden; }
+    .header { background: #4CAF50; color: white; padding: 32px 24px 16px 24px; text-align: center; }
+    .header h1 { margin: 0 0 8px 0; font-size: 2rem; }
+    .header p { margin: 0; font-size: 1.1rem; }
+    .content { padding: 32px 24px 24px 24px; }
+    .greeting { font-size: 1.1rem; margin-bottom: 16px; }
+    .credentials { background: #e7f3ff; border-left: 4px solid #2196F3; padding: 18px 18px 12px 18px; margin: 24px 0 24px 0; border-radius: 4px; }
+    .credentials strong { display: inline-block; width: 120px; color: #333; }
+    .app-link { display: inline-block; margin: 18px 0 0 0; padding: 12px 28px; background: #4CAF50; color: #fff; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 1.1rem; }
+    .footer { color: #888; font-size: 0.95rem; text-align: center; margin: 32px 0 0 0; padding-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧥 Garderobe</h1>
+      <p>Willkommen im Team!</p>
+    </div>
+    <div class="content">
+      <div class="greeting">Hallo <b>${firstName} ${lastName}</b>,<br>schön, dass du dabei bist!</div>
+      <div>Hier sind deine Zugangsdaten für die Garderobe-App:</div>
+      <div class="credentials">
+        <div><strong>Benutzername:</strong> ${to}</div>
+        <div><strong>Passwort:</strong> ${password}</div>
+      </div>
+      <a class="app-link" href="${appUrl}">Zur Garderobe-App</a>
+      <div style="margin-top:24px;">Bitte ändere dein Passwort nach dem ersten Login.</div>
+    </div>
+    <div class="footer">
+      Viele Grüße<br>Dein Garderobe-Team
+    </div>
+  </div>
+</body>
+</html>
+      `;
+      const mailOptions = {
+        from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@example.com',
+        to: to,
+        subject,
+        text,
+        html
+      };
+      const result = await this.transporter.sendMail(mailOptions);
+      // Nur noch bei Erfolg/Misserfolg loggen
+      console.log('[MAIL] Zugangsdaten-Mail erfolgreich versendet an', to);
+      return true;
+    } catch (error) {
+      console.error('[MAIL] Fehler beim Versand der Zugangsdaten-Mail an', to, ':', error?.message || error);
+      return false;
+    }
   }
 
   async sendConfirmationEmail(options: {
@@ -74,16 +133,12 @@ export class EmailService {
   }): Promise<boolean> {
     try {
       const { employeeEmail, employeeName, confirmationUrl, protocolType, items, expiresAt } = options;
-
-      // Debug: Log current email mode
       console.log(`[EMAIL SERVICE] Current mode: ${EMAIL_MODE}, Test address: ${TEST_EMAIL_ADDRESS}`);
 
-      // Bestimme Zieladresse basierend auf Modus
       const { to: recipientEmail, originalEmail } = this.getRecipientEmail(employeeEmail);
 
       console.log(`[EMAIL SERVICE] Sending email to: ${recipientEmail}${EMAIL_MODE === 'development' ? ` (DEV MODE - Original: ${employeeEmail})` : ''}`);
 
-      // Generate email content
       const template = this.generateConfirmationTemplate({
         employeeName,
         confirmationUrl,
@@ -122,19 +177,14 @@ export class EmailService {
   }): EmailTemplate {
     const { employeeName, confirmationUrl, protocolType, items, expiresAt, isDevelopmentMode, originalEmail } = options;
 
-    // Asset base for absolute URLs (images, logo)
-    // Verwendet APP_HOST und FRONTEND_PORT aus .env (Fallback nur für Entwicklung)
     const assetBase = `https://${process.env.APP_HOST || 'localhost'}:${process.env.FRONTEND_PORT || '3078'}`;
     const companyLogoUrl = process.env.COMPANY_LOGO_URL ? `${assetBase}${process.env.COMPANY_LOGO_URL}` : '';
-
-    // Determine protocol type in German
     const protocolTypeGerman = {
       SINGLE: 'Einzelausgabe',
       BULK_ISSUE: 'Sammelausgabe',
       BULK_RETURN: 'Sammelrückgabe',
     }[protocolType] || 'Protokoll';
 
-    // Group items by name + size (and image) for a compact summary
     const groupedMap = new Map<string, { name: string; size: string; imageUrl?: string; quantity: number }>();
     (items || []).forEach((item: any) => {
       const name = (item?.name || 'Unbekannter Artikel').trim();
@@ -151,7 +201,6 @@ export class EmailService {
     });
     const groupedItems = Array.from(groupedMap.values());
 
-    // Plain-text summary
     const itemsText = groupedItems
       .map((g) => `• ${g.quantity}x ${g.name} (Größe: ${g.size})`)
       .join('\n');
@@ -172,13 +221,13 @@ Um den Erhalt zu bestätigen, klicken Sie bitte auf den folgenden Link:
 ${confirmationUrl}
 
 Dieser Link ist gültig bis: ${expiresAt.toLocaleDateString('de-DE', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })}
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })}
 
 Sie werden zur Bestätigung zu einem sicheren Microsoft-Login weitergeleitet.
 
@@ -186,8 +235,8 @@ Mit freundlichen Grüßen
 Ihr Garderobe-Team
     `.trim();
 
-    const html = `
-<!DOCTYPE html>
+    const html =
+`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -196,16 +245,16 @@ Ihr Garderobe-Team
     body {
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.5;
-      color: #1F2937; /* neutral-800 */
+      color: #1F2937; 
       margin: 0;
       padding: 0;
-      background-color: #F5F7FA; /* neutral background */
+      background-color: #F5F7FA; 
     }
     .container {
       max-width: 640px;
       margin: 24px auto;
       background: #FFFFFF;
-      border: 1px solid #E5E7EB; /* neutral-300 */
+      border: 1px solid #E5E7EB; 
       border-radius: 8px;
     }
     .header {
@@ -362,9 +411,7 @@ Ihr Garderobe-Team
     </div>
   </div>
 </body>
-</html>
-    `.trim();
-
+</html>`;
     return { to: '', subject, text, html };
   }
 
@@ -375,8 +422,7 @@ Ihr Garderobe-Team
         to: to,
         subject: 'Garderobe System - Test Email',
         text: `Dies ist eine Test-Email vom Garderobe System.\n\nVersandt von: ${process.env.SMTP_FROM || process.env.SMTP_USER}\nZeit: ${new Date().toLocaleString('de-DE')}\n\nWenn Sie diese Email erhalten haben, ist die Email-Konfiguration korrekt.`,
-        html: `
-<!DOCTYPE html>
+        html: `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -398,21 +444,17 @@ Ihr Garderobe-Team
     <div class="content">
       <h2>Email-Test erfolgreich!</h2>
       <p>Diese Test-Email bestätigt, dass die Email-Konfiguration des Garderobe Systems ordnungsgemäß funktioniert.</p>
-      
       <div class="info">
         <strong>📧 Versandt von:</strong> ${process.env.SMTP_FROM || process.env.SMTP_USER}<br>
         <strong>⏰ Zeit:</strong> ${new Date().toLocaleString('de-DE')}<br>
         <strong>🔧 SMTP Host:</strong> ${process.env.SMTP_HOST}
       </div>
-      
       <p>Das System ist bereit für das Versenden von Bestätigungs-Emails an Mitarbeiter.</p>
     </div>
   </div>
 </body>
-</html>
-        `,
+</html>`
       };
-
       const result = await this.transporter.sendMail(mailOptions);
       console.log('Test email sent successfully:', result.messageId);
       return true;
@@ -436,7 +478,6 @@ Ihr Garderobe-Team
   async sendEmail(options: { to: string; subject: string; html: string; text?: string }): Promise<boolean> {
     try {
       const { to, subject, html, text } = options;
-      
       const mailOptions = {
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
         to,
@@ -455,5 +496,4 @@ Ihr Garderobe-Team
   }
 }
 
-// Singleton instance
 export const emailService = new EmailService();

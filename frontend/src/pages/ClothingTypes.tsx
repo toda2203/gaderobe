@@ -769,7 +769,7 @@ const ClothingTypesPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="Erforderlich für Abteilungen"
+            label="Anforderbar für Abteilungen"
             name="requiresDepartment"
           >
             <Select

@@ -95,6 +95,44 @@ async function main() {
   await seedList('SIZE', sizes);
   await seedList('CATEGORY', categories);
   await seedList('DEPARTMENT', departments);
+    // Hilfsfunktion: Alle Mitarbeiter außer Admin löschen
+    async function clearEmployeesExceptAdmin() {
+      await prisma.employee.deleteMany({
+        where: {
+          NOT: {
+            role: 'ADMIN',
+          },
+        },
+      });
+      // Optional: Admin-Passwort zurücksetzen
+    }
+
+    // Am Anfang des Seeds ausführen
+    await clearEmployeesExceptAdmin();
+
+    // Initialen Admin-Benutzer anlegen (falls nicht vorhanden)
+    const adminEmail = 'admin@gaderobe.local';
+    const adminPassword = 'admin123';
+    let admin = await prisma.employee.findFirst({ where: { role: 'ADMIN' } });
+    if (!admin) {
+      const bcrypt = require('bcryptjs');
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      admin = await prisma.employee.create({
+        data: {
+          email: adminEmail,
+          passwordHash: passwordHash,
+          firstName: 'Admin',
+          lastName: 'User',
+          department: 'IT',
+          status: 'ACTIVE',
+          role: 'ADMIN',
+          isHidden: false,
+        } as any, // Explizit als any casten, damit UncheckedCreateInput genutzt wird
+      });
+      console.log(`Initialer Admin-Benutzer erstellt: ${adminEmail} / ${adminPassword}`);
+    } else {
+      console.log('Admin-Benutzer existiert bereits.');
+    }
   console.log('Seeded master data: sizes, categories, departments');
 }
 

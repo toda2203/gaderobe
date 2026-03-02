@@ -1,3 +1,4 @@
+import { ProfileAvatar } from '../Auth/ProfileAvatar';
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Avatar, Dropdown, Typography, Space, Tooltip, Image } from 'antd';
@@ -14,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '@store/authStore';
 import { authService } from '@services/authService';
+import { ProfileModal } from '../Auth/ProfileModal';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -130,7 +132,8 @@ export default function AppLayout() {
     ];
 
     // For READ_ONLY users, only show Dashboard, Clothing Items (their own), and Transactions (their own)
-    if (user?.role === 'READ_ONLY') {
+    if (user?.role === 'READ_ONLY' || user?.role === 'WAREHOUSE') {
+      // Nur Dashboard, Kleidung, Übergaben
       return allMenuItems.filter(item => 
         item.key === '/' || 
         item.key === '/clothing' || 
@@ -141,11 +144,13 @@ export default function AppLayout() {
     return allMenuItems.filter(item => !item.hidden);
   };
 
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   const userMenuItems = [
     {
       key: 'profile',
       icon: <UserOutlined />,
       label: 'Profil',
+      onClick: () => setProfileModalVisible(true),
     },
     {
       key: 'logout',
@@ -158,6 +163,8 @@ export default function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {/* Profil-Modal */}
+      <ProfileModal visible={profileModalVisible} onClose={() => setProfileModalVisible(false)} />
       <Sider
         collapsible
         collapsed={collapsed}
@@ -252,14 +259,16 @@ export default function AppLayout() {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <Avatar 
+              <ProfileAvatar
+                profileImageUrl={user?.profileImageUrl}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
                 size={40}
                 style={{ 
                   backgroundColor: '#1677ff',
                   boxShadow: '0 2px 8px rgba(22, 119, 255, 0.2)',
                   border: '2px solid #fff'
-                }} 
-                icon={<UserOutlined />} 
+                }}
               />
               {!collapsed && (
                 <div style={{ lineHeight: '1.2' }}>

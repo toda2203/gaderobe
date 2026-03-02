@@ -16,15 +16,15 @@ datasource db {
 // ========================================
 model Employee {
   id              String   @id @default(cuid())
-  entraId         String   @unique
   email           String   @unique
+  passwordHash    String
   firstName       String
   lastName        String
   department      String?
   status          String   @default("ACTIVE") // EmployeeStatus: ACTIVE, INACTIVE, LEFT
   role            String   @default("READ_ONLY") // UserRole: ADMIN, WAREHOUSE, HR, READ_ONLY
   isHidden        Boolean  @default(false)
-  lastSyncAt      DateTime @updatedAt
+  profileImageUrl String?
 
   // Relations
   issuedTransactions     Transaction[] @relation("IssuedBy")
@@ -38,7 +38,6 @@ model Employee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([entraId])
   @@index([email])
   @@index([department])
   @@index([status])

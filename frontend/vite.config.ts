@@ -9,9 +9,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   
   // Get host configuration from environment variables
+  // Feste Ports für Entwicklung (Frontend: 3078, Backend: 3077)
+  // Für andere Umgebungen ggf. Umgebungsvariablen anpassen
   const appHost = env.VITE_APP_HOST || 'localhost'
-  const frontendPort = parseInt(env.VITE_FRONTEND_PORT || '3078')
-  const backendPort = env.VITE_BACKEND_PORT || '3077'
+  const frontendPort = 3078;
+  const backendPort = 3077;
 
   // Check if SSL certificates exist
   const certPath = path.resolve(__dirname, 'cert.pfx');
@@ -32,26 +34,27 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      https: hasSSL ? {
-        // Use Buffer for pfx and avoid boolean union typing issues
-        pfx: fs.readFileSync(certPath),
-        passphrase: 'password123',
-      } : undefined,
+      // Für Entwicklung: HTTP verwenden, kein SSL, kein Nginx nötig
+      // Für Produktion: Unten stehende Zeilen wieder auf HTTPS ändern!
+      // ---
+      // https: hasSSL ? {
+      //   pfx: fs.readFileSync(certPath),
+      //   passphrase: 'password123',
+      // } : undefined,
       host: '0.0.0.0',
       port: frontendPort,
       allowedHosts: ['localhost', appHost, '127.0.0.1'],
       proxy: {
+        // Proxy für API- und Upload-Requests im Dev-Modus
         '/api': {
-          target: `https://${appHost}:${backendPort}`,
+          target: `http://localhost:3077`,
           changeOrigin: true,
           rewrite: (path) => path,
-          secure: false,  // Accept self-signed certificates
         },
         '/uploads': {
-          target: `https://${appHost}:${backendPort}`,
+          target: `http://localhost:3077`,
           changeOrigin: true,
           rewrite: (path) => path,
-          secure: false,  // Accept self-signed certificates
         },
       },
     },
